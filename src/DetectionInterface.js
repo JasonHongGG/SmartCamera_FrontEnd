@@ -901,8 +901,14 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
           checked={checked}
           onChange={handleChange}
           size="medium"
+          sx={{
+            transform: 'scale(0.8)',
+            '@media (min-width: 640px)': {
+              transform: 'scale(1)',
+            }
+          }}
         />
-        <label htmlFor={id} className="ml-3 text-white text-sm font-medium">
+        <label htmlFor={id} className="ml-2 sm:ml-3 text-white text-xs sm:text-sm font-medium">
           {label}
         </label>
       </div>
@@ -910,15 +916,15 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
   };
 
   const DetectionGroup = ({ title, icon: Icon, enabled, onToggle, status, children, streaming, streamUrl }) => (
-    <div className="bg-gradient-to-br from-slate-800 to-slate-700 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl border border-slate-600/50 shadow-2xl backdrop-blur-md hover:shadow-slate-700/20 transition-all duration-300">
+    <div className="bg-gradient-to-br from-slate-800 to-slate-700 p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl sm:rounded-2xl lg:rounded-3xl border border-slate-600/50 shadow-2xl backdrop-blur-md hover:shadow-slate-700/20 transition-all duration-300">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400 flex-shrink-0" />
-          <div className="min-w-0">
-            <h3 className="text-white font-bold text-lg sm:text-xl lg:text-2xl tracking-tight break-words">{title}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <div className={`w-2 h-2 rounded-full ${enabled ? 'bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50' : 'bg-slate-500'} transition-all duration-300 flex-shrink-0`}></div>
+      <div className="flex items-center justify-between mb-4 sm:mb-6 md:mb-8 gap-2 sm:gap-3 md:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0 flex-1">
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-amber-400 flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h3 className="text-white font-bold text-base sm:text-lg md:text-xl lg:text-2xl tracking-tight break-words">{title}</h3>
+            <div className="flex items-center gap-2 mt-0.5 sm:mt-1">
+              <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${enabled ? 'bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50' : 'bg-slate-500'} transition-all duration-300 flex-shrink-0`}></div>
               <span className="text-slate-400 text-xs sm:text-sm truncate">{status}</span>
             </div>
           </div>
@@ -934,31 +940,31 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
       </div>
 
       {/* Children Content */}
-      <div className="mb-6 sm:mb-8">
+      <div className="mb-4 sm:mb-6 md:mb-8">
         {children}
       </div>
 
       {/* Stream Display */}
-      <div className="bg-gradient-to-br from-slate-700/40 to-slate-600/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 backdrop-blur-sm border border-slate-500/30 shadow-inner">    
-        <div className="bg-slate-800/60 rounded-xl sm:rounded-2xl min-h-[200px] sm:min-h-[280px] relative overflow-hidden border border-slate-500/40 shadow-inner">
+      <div className="bg-gradient-to-br from-slate-700/40 to-slate-600/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 backdrop-blur-sm border border-slate-500/30 shadow-inner">    
+        <div className="bg-slate-800/60 rounded-lg sm:rounded-xl md:rounded-2xl min-h-[180px] sm:min-h-[220px] md:min-h-[280px] relative overflow-hidden border border-slate-500/40 shadow-inner">
           {streaming && enabled ? (
             <div className="flex justify-center items-center w-full h-full">
               <img
                 src={streamUrl}
                 alt={`${title} stream`}
-                className="max-w-full max-h-[400px] sm:max-h-[500px] lg:max-h-[600px] w-auto h-auto object-contain"
+                className="max-w-full max-h-[250px] sm:max-h-[350px] md:max-h-[450px] lg:max-h-[600px] w-auto h-auto object-contain"
                 crossOrigin="anonymous"
               />
             </div>
           ) : (
-            <div className="flex items-center justify-center h-[200px] sm:h-[280px] text-center text-slate-400 p-4">
-              <div className="space-y-3 sm:space-y-4 max-w-xs">
-                <div className="p-3 sm:p-4 bg-slate-700/50 rounded-xl sm:rounded-2xl border border-slate-600/30">
-                  <Monitor className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 opacity-60" />
-                  <p className="text-base sm:text-lg font-medium break-words">
+            <div className="flex items-center justify-center h-[180px] sm:h-[220px] md:h-[280px] text-center text-slate-400 p-3 sm:p-4">
+              <div className="space-y-2 sm:space-y-3 md:space-y-4 max-w-xs">
+                <div className="p-2 sm:p-3 md:p-4 bg-slate-700/50 rounded-lg sm:rounded-xl md:rounded-2xl border border-slate-600/30">
+                  <Monitor className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-1 sm:mb-2 md:mb-3 opacity-60" />
+                  <p className="text-sm sm:text-base md:text-lg font-medium break-words">
                     {enabled ? 'Initializing Detection...' : 'Detection System Disabled'}
                   </p>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1 sm:mt-2 break-words">
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1 md:mt-2 break-words">
                     {enabled ? 'Please wait while the system starts up' : 'Enable detection to view live feed'}
                   </p>
                 </div>
@@ -979,8 +985,8 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
         overflowAnchor: 'none' // 防止自動滾動錨點
       }}
     >
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="space-y-6 sm:space-y-8 lg:space-y-12">
+      <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8">
+        <div className="space-y-4 sm:space-y-6 md:space-y-8 lg:space-y-12">
         {/* Motion Detection */}
         <DetectionGroup
           title="Motion Detection"
@@ -991,24 +997,24 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
           streaming={motionDetection.streaming}
           streamUrl={`${activeHost}/motion/stream`}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
-                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
+                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-400" />
                 </div>
-                <p className="text-slate-300 font-medium text-sm sm:text-base">Last Detection</p>
+                <p className="text-slate-300 font-medium text-xs sm:text-sm md:text-base">Last Detection</p>
               </div>
-              <p className="text-white font-mono text-lg sm:text-xl font-semibold break-words">
+              <p className="text-white font-mono text-sm sm:text-base md:text-lg lg:text-xl font-semibold break-words">
                 {motionDetection.lastDetection || 'No recent activity'}
               </p>
             </div>
-            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
+            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
+                  <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-400" />
                 </div>
-                <p className="text-slate-300 font-medium text-sm sm:text-base">Sensitivity Level</p>
+                <p className="text-slate-300 font-medium text-xs sm:text-sm md:text-base">Sensitivity Level</p>
               </div>
               <FormControl size="small" fullWidth>
                 <Select
@@ -1092,10 +1098,10 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
               
               {/* Custom Sensitivity Settings - Only show when 'custom' is selected */}
               {motionDetection.sensitivity === 'custom' && (
-                <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-600/30 space-y-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Settings className="w-4 h-4 text-amber-400" />
-                    <h4 className="text-amber-400 font-semibold text-sm">Custom Settings</h4>
+                <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-slate-800/50 rounded-lg border border-slate-600/30 space-y-3 sm:space-y-4">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                    <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                    <h4 className="text-amber-400 font-semibold text-xs sm:text-sm">Custom Settings</h4>
                   </div>
                   
                   <div className="space-y-3">
@@ -1138,7 +1144,7 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-2 pt-1 sm:pt-2">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -1146,7 +1152,7 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
                         setMotionSensitivity('custom', customSensitivity);
                       }}
                       disabled={!motionDetection.enabled}
-                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                      className={`flex-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
                         !motionDetection.enabled
                           ? 'bg-slate-600/60 text-slate-400 cursor-not-allowed'
                           : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black shadow-lg'
@@ -1239,18 +1245,18 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
                 Cross Line Detected!
               </p> 
             </div>
-            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300 sm:col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300 sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 md:mb-4">
+                <div className="p-1 sm:p-1.5 md:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
+                  <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-400" />
                 </div>
-                <p className="text-slate-300 font-medium text-sm sm:text-base">Line Controls</p>
+                <p className="text-slate-300 font-medium text-xs sm:text-sm md:text-base">Line Controls</p>
               </div>
               <div className="space-y-2 sm:space-y-3">
                 <button
                   onClick={addVerticalLine}
                   disabled={!crosslineDetection.enabled}
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${
+                  className={`w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 ${
                     !crosslineDetection.enabled
                       ? 'bg-slate-600/60 text-slate-400 cursor-not-allowed border border-slate-500/30'
                       : 'bg-gradient-to-r from-amber-500 to-amber-500 hover:from-amber-500 hover:to-amber-500 text-slate-900 shadow-lg hover:shadow-amber-400/30 border border-amber-400/30 font-bold'
@@ -1263,7 +1269,7 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
                 <button
                   onClick={clearLines}
                   disabled={!crosslineDetection.enabled || crosslineDetection.lines.length === 0}
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${
+                  className={`w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 ${
                     !crosslineDetection.enabled || crosslineDetection.lines.length === 0
                       ? 'bg-slate-600/60 text-slate-400 cursor-not-allowed border border-slate-500/30'
                       : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg hover:shadow-red-500/30 border border-red-400/30 font-bold'
@@ -1279,18 +1285,19 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
 
           {/* Interactive Canvas Overlay */}
           {crosslineDetection.enabled && (
-            <div className="mt-6 sm:mt-8 bg-gradient-to-br from-slate-700/40 to-slate-600/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 backdrop-blur-sm border border-slate-500/30 shadow-inner">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+            <div className="mt-4 sm:mt-6 md:mt-8 bg-gradient-to-br from-slate-700/40 to-slate-600/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 backdrop-blur-sm border border-slate-500/30 shadow-inner">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 md:mb-6 gap-2 sm:gap-3">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg border border-amber-500/30 flex-shrink-0">
-                    <MousePointer className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                  <div className="p-1 sm:p-1.5 md:p-2 bg-amber-500/20 rounded-lg border border-amber-500/30 flex-shrink-0">
+                    <MousePointer className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-400" />
                   </div>
-                  <h4 className="text-white font-semibold text-base sm:text-lg lg:text-xl">Interactive Line Editing</h4>
+                  <h4 className="text-white font-semibold text-sm sm:text-base md:text-lg lg:text-xl">Interactive Line Editing</h4>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-500/20 rounded-lg border border-amber-500/30">
+                <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-amber-500/20 rounded-lg border border-amber-500/30">
                     <MousePointer className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 flex-shrink-0" />
-                    <span className="text-amber-400 font-semibold text-xs sm:text-sm">Drag Endpoints to Adjust</span>
+                    <span className="text-amber-400 font-semibold text-xs sm:text-sm hidden sm:inline">Drag Endpoints to Adjust</span>
+                    <span className="text-amber-400 font-semibold text-xs sm:hidden">Drag to Edit</span>
                   </div>
                   <button
                     onClick={(e) => {
@@ -1298,12 +1305,12 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
                       e.stopPropagation();
                       setIsLineEditingExpanded(!isLineEditingExpanded);
                     }}
-                    className="p-2 sm:p-2.5 bg-slate-600/50 hover:bg-slate-600/70 rounded-lg border border-slate-500/30 hover:border-slate-400/50 transition-all duration-200 flex items-center justify-center flex-shrink-0"
+                    className="p-1.5 sm:p-2 md:p-2.5 bg-slate-600/50 hover:bg-slate-600/70 rounded-lg border border-slate-500/30 hover:border-slate-400/50 transition-all duration-200 flex items-center justify-center flex-shrink-0"
                   >
                     {isLineEditingExpanded ? (
-                      <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
+                      <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-slate-300" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
+                      <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-slate-300" />
                     )}
                   </button>
                 </div>
@@ -1313,8 +1320,8 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
               <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
                 isLineEditingExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
               }`}>
-                <div className="bg-slate-800/60 rounded-lg sm:rounded-2xl relative overflow-hidden border border-slate-500/40 shadow-2xl">
-                  <div className="flex justify-center items-center w-full h-full min-h-[500px]">
+                <div className="bg-slate-800/60 rounded-lg sm:rounded-xl md:rounded-2xl relative overflow-hidden border border-slate-500/40 shadow-2xl">
+                  <div className="flex justify-center items-center w-full h-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
                     {/* Background stream */}
                     <img
                       src={`${activeHost}/crossline/stream`}
