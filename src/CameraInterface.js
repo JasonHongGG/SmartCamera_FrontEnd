@@ -66,6 +66,7 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
 
     const adjustedStreamUrl = adjustHost(activeHost);
     setStreamUrl(adjustedStreamUrl);
+    // setStreamUrl(activeHost);
   }, [activeHost]);
 
   const updateConfig = useCallback(async (key, value, retryCount = 3) => {
@@ -76,7 +77,8 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
         // Create AbortController for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
+
+        console.log(`Sending request to ${activeHost}/control?var=${key}&val=${value}`);
         const response = await fetch(`${activeHost}/control?var=${key}&val=${value}`, {
           signal: controller.signal,
           method: 'GET',
@@ -134,7 +136,7 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
-      const response = await fetch(`${activeHost}/control?var=framesize&val=${cameraSettings.framesize}`, {
+      const response = await fetch(`${activeHost}/testConnection`, {
         signal: controller.signal,
         method: 'GET',
       });

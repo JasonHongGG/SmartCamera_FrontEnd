@@ -7,7 +7,7 @@ import {
   FormControl
 } from '@mui/material';
 
-const CameraDetectionInterface = ({ baseHost = "http://localhost:4000", cameraHost, detectionHost }) => {
+const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHost, detectionHost }) => {
   // 使用 detectionHost 如果提供，否則使用 baseHost (向後相容)
   const activeHost = detectionHost || baseHost;
   // Detection states

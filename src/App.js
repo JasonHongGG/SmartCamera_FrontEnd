@@ -11,7 +11,7 @@ import CameraDetectionInterface from './DetectionInterface';
 const App = () => {
   const [currentPage, setCurrentPage] = useState('camera'); // 'camera' 或 'detection'
   const [cameraHost, setCameraHost] = useState("http://140.116.6.62:3000");
-  const [detectionHost, setDetectionHost] = useState("http://localhost:4000");
+  const [detectionHost, setDetectionHost] = useState("http://localhost:5000");
   const [hostDialogOpen, setHostDialogOpen] = useState(false);
   const [tempCameraHost, setTempCameraHost] = useState(cameraHost);
   const [tempDetectionHost, setTempDetectionHost] = useState(detectionHost);
@@ -204,7 +204,7 @@ const App = () => {
                 variant="outlined"
                 value={tempDetectionHost}
                 onChange={(e) => setTempDetectionHost(e.target.value)}
-                placeholder="http://localhost:4000"
+                placeholder="http://localhost:5000"
                 helperText="Enter the URL for the detection system"
                 sx={{
                   '& .MuiOutlinedInput-root': {
