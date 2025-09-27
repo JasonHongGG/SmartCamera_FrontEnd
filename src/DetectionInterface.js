@@ -73,9 +73,31 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
     const naturalWidth = e.target.naturalWidth || 640;
     const naturalHeight = e.target.naturalHeight || 480;
     
-    // 獲取圖片在瀏覽器中的實際顯示尺寸
-    const displayWidth = e.target.width || e.target.offsetWidth || 640;
-    const displayHeight = e.target.height || e.target.offsetHeight || 480;
+    // 獲取圖片容器的實際尺寸（固定高度容器）
+    const container = e.target.parentElement;
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // 計算圖片在固定尺寸容器中使用 object-contain 的實際顯示尺寸
+    const imageAspect = naturalWidth / naturalHeight;
+    const containerAspect = containerWidth / containerHeight;
+    
+    let actualDisplayWidth, actualDisplayHeight;
+    
+    if (imageAspect > containerAspect) {
+      // 圖片比較寬，以容器寬度為準
+      actualDisplayWidth = containerWidth;
+      actualDisplayHeight = containerWidth / imageAspect;
+    } else {
+      // 圖片比較高，以容器高度為準
+      actualDisplayHeight = containerHeight;
+      actualDisplayWidth = containerHeight * imageAspect;
+    }
+    
+    console.log(`Container: ${containerWidth}x${containerHeight}, Image: ${naturalWidth}x${naturalHeight}, Display: ${actualDisplayWidth}x${actualDisplayHeight}`);
     
     // 更新 canvas 尺寸為圖片的自然尺寸
     setCanvasSize(prev => {
@@ -95,11 +117,11 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
       return prev;
     });
     
-    // 更新顯示尺寸為圖片在瀏覽器中的實際尺寸
+    // 更新顯示尺寸為圖片在固定容器中的實際顯示尺寸
     setDisplayedImageSize(prev => {
-      if (prev.width !== displayWidth || prev.height !== displayHeight) {
-        console.log(`Displayed image size: ${displayWidth}x${displayHeight}`);
-        return { width: displayWidth, height: displayHeight };
+      if (prev.width !== actualDisplayWidth || prev.height !== actualDisplayHeight) {
+        console.log(`Displayed image size: ${actualDisplayWidth}x${actualDisplayHeight}`);
+        return { width: actualDisplayWidth, height: actualDisplayHeight };
       }
       return prev;
     });
@@ -946,18 +968,18 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
 
       {/* Stream Display */}
       <div className="bg-gradient-to-br from-slate-700/40 to-slate-600/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 backdrop-blur-sm border border-slate-500/30 shadow-inner">    
-        <div className="bg-slate-800/60 rounded-lg sm:rounded-xl md:rounded-2xl min-h-[180px] sm:min-h-[220px] md:min-h-[280px] relative overflow-hidden border border-slate-500/40 shadow-inner">
+        <div className="bg-slate-800/60 rounded-lg sm:rounded-xl md:rounded-2xl h-[200px] sm:h-[280px] md:h-[360px] lg:h-[480px] relative overflow-hidden border border-slate-500/40 shadow-inner">
           {streaming && enabled ? (
             <div className="flex justify-center items-center w-full h-full">
               <img
                 src={streamUrl}
                 alt={`${title} stream`}
-                className="max-w-full max-h-[250px] sm:max-h-[350px] md:max-h-[450px] lg:max-h-[600px] w-auto h-auto object-contain"
+                className="w-full h-full object-contain"
                 crossOrigin="anonymous"
               />
             </div>
           ) : (
-            <div className="flex items-center justify-center h-[180px] sm:h-[220px] md:h-[280px] text-center text-slate-400 p-3 sm:p-4">
+            <div className="flex items-center justify-center h-full text-center text-slate-400 p-3 sm:p-4">
               <div className="space-y-2 sm:space-y-3 md:space-y-4 max-w-xs">
                 <div className="p-2 sm:p-3 md:p-4 bg-slate-700/50 rounded-lg sm:rounded-xl md:rounded-2xl border border-slate-600/30">
                   <Monitor className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-1 sm:mb-2 md:mb-3 opacity-60" />
@@ -1178,28 +1200,28 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
           streamUrl={`${activeHost}/face/stream`}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
+            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-400" />
                 </div>
-                <p className="text-slate-300 font-medium text-sm sm:text-base">Faces Detected</p>
+                <p className="text-slate-300 font-medium text-xs sm:text-sm md:text-base">Faces Detected</p>
               </div>
-              <p className="text-white font-mono text-2xl sm:text-4xl font-bold">
+              <p className="text-white font-mono text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
                 {faceDetection.faceCount}
               </p>
             </div>
-            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
+            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
-                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
+                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-400" />
                 </div>
-                <p className="text-slate-300 font-medium text-sm sm:text-base">Last Detection</p>
+                <p className="text-slate-300 font-medium text-xs sm:text-sm md:text-base">Last Detection</p>
               </div>
-              <p className="text-white font-mono text-lg sm:text-xl font-semibold break-words">
+              <p className="text-white font-mono text-sm sm:text-base md:text-lg lg:text-xl font-semibold break-words">
                 {faceDetection.lastDetection || 'No recent activity'}
               </p>
-              <p className="text-white font-mono text-lg sm:text-xl font-semibold break-words">
+              <p className="text-white font-mono text-sm sm:text-base md:text-lg lg:text-xl font-semibold break-words">
                 {faceDetection.faceNames || ''}
               </p>
             </div>
@@ -1217,31 +1239,31 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
           streamUrl={`${activeHost}/crossline/stream`}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
+            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
-                  <GitMerge className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
+                  <GitMerge className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-400" />
                 </div>
-                <p className="text-slate-300 font-medium text-sm sm:text-base">Active Lines</p>
+                <p className="text-slate-300 font-medium text-xs sm:text-sm md:text-base">Active Lines</p>
               </div>
-              <p className="text-white font-mono text-2xl sm:text-4xl font-bold">
+              <p className="text-white font-mono text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
                 {crosslineDetection.lines.length}
               </p>
             </div>
-            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
+            <div className="group bg-gradient-to-br from-slate-600/40 to-slate-700/40 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-500/30 backdrop-blur-sm hover:border-slate-400/50 transition-all duration-300">
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
-                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
+                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-400" />
                 </div>
-                <p className="text-slate-300 font-medium text-sm sm:text-base">Crossing Events</p>
+                <p className="text-slate-300 font-medium text-xs sm:text-sm md:text-base">Crossing Events</p>
               </div>
-              <p className="text-white font-mono text-lg sm:text-xl font-semibold break-words">
+              <p className="text-white font-mono text-sm sm:text-base md:text-lg lg:text-xl font-semibold break-words">
                 {crosslineDetection.lastDetection}
               </p> 
-              <p className="text-white font-mono text-lg sm:text-xl font-semibold break-words">
+              <p className="text-white font-mono text-sm sm:text-base md:text-lg lg:text-xl font-semibold break-words">
                 {crosslineDetection.crossingEvent}
               </p>
-              <p className="text-white font-mono text-lg sm:text-xl font-semibold break-words">
+              <p className="text-white font-mono text-sm sm:text-base md:text-lg lg:text-xl font-semibold break-words">
                 Cross Line Detected!
               </p> 
             </div>
@@ -1321,12 +1343,12 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
                 isLineEditingExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
               }`}>
                 <div className="bg-slate-800/60 rounded-lg sm:rounded-xl md:rounded-2xl relative overflow-hidden border border-slate-500/40 shadow-2xl">
-                  <div className="flex justify-center items-center w-full h-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
+                  <div className="flex justify-center items-center w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
                     {/* Background stream */}
                     <img
                       src={`${activeHost}/crossline/stream`}
                       alt="Crossline detection stream"
-                      className="max-w-full max-h-[400px] sm:max-h-[500px] lg:max-h-[600px] w-auto h-auto object-contain"
+                      className="w-full h-full object-contain"
                       crossOrigin="anonymous"
                       onLoad={handleImageLoad}
                     />

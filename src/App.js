@@ -12,9 +12,11 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState('camera'); // 'camera' 或 'detection'
   const [cameraHost, setCameraHost] = useState("http://140.116.6.62:3000");
   const [detectionHost, setDetectionHost] = useState("http://localhost:5000");
+  const [streamHost, setStreamHost] = useState("http://140.116.6.62:3001");
   const [hostDialogOpen, setHostDialogOpen] = useState(false);
   const [tempCameraHost, setTempCameraHost] = useState(cameraHost);
   const [tempDetectionHost, setTempDetectionHost] = useState(detectionHost);
+  const [tempStreamHost, setTempStreamHost] = useState(streamHost);
 
   const navigationItems = [
     {
@@ -37,12 +39,14 @@ const App = () => {
   const handleHostChange = () => {
     setCameraHost(tempCameraHost);
     setDetectionHost(tempDetectionHost);
+    setStreamHost(tempStreamHost);
     setHostDialogOpen(false);
   };
 
   const openHostDialog = () => {
     setTempCameraHost(cameraHost);
     setTempDetectionHost(detectionHost);
+    setTempStreamHost(streamHost);
     setHostDialogOpen(true);
   };
 
@@ -145,6 +149,7 @@ const App = () => {
               baseHost={currentPage === 'camera' ? cameraHost : detectionHost}
               cameraHost={cameraHost}
               detectionHost={detectionHost}
+              streamHost={streamHost}
             />
           )}
         </div>
@@ -181,6 +186,31 @@ const App = () => {
                 onChange={(e) => setTempCameraHost(e.target.value)}
                 placeholder="http://140.116.6.62:3000"
                 helperText="Enter the URL for the camera control system"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    color: '#f3f4f6',
+                    '& fieldset': { borderColor: '#6b7280' },
+                    '&:hover fieldset': { borderColor: '#9ca3af' },
+                    '&.Mui-focused fieldset': { borderColor: '#eab308' },
+                  },
+                  '& .MuiInputLabel-root': { 
+                    color: '#9ca3af',
+                    '&.Mui-focused': { color: '#eab308' }
+                  },
+                  '& .MuiFormHelperText-root': { color: '#9ca3af' }
+                }}
+              />
+
+              <TextField
+                margin="dense"
+                label="Stream Host URL"
+                type="url"
+                fullWidth
+                variant="outlined"
+                value={tempStreamHost}
+                onChange={(e) => setTempStreamHost(e.target.value)}
+                placeholder="http://140.116.6.62:3001"
+                helperText="Enter the URL for the camera stream (optional, defaults to camera host)"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#f3f4f6',
@@ -235,7 +265,7 @@ const App = () => {
               sx={{
                 bgcolor: '#eab308',
                 color: '#000',
-                '&:hover': { bgcolor: '#d97706' }
+                '&:hover': { bgcolor: '#e8ba31ff' }
               }}
             >
               Apply
@@ -252,7 +282,7 @@ const App = () => {
                 <span className="text-gray-400 text-sm">System Active</span>
               </div>
               <div className="text-gray-500 text-sm">
-                Camera: {cameraHost} | Detection: {detectionHost}
+                Camera: {cameraHost} | Stream: {streamHost} | Detection: {detectionHost}
               </div>
             </div>
             <div className="text-gray-500 text-xs">

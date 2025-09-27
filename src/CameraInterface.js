@@ -10,7 +10,7 @@ import {
   FormControl
 } from '@mui/material';
 
-const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, detectionHost }) => {
+const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, streamHost, detectionHost }) => {
   // 使用 cameraHost 如果提供，否則使用 baseHost (向後相容)
   const activeHost = cameraHost || baseHost;
   const [isStreaming, setIsStreaming] = useState(false);
@@ -53,21 +53,8 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
 
   // Initialize URLs
   useEffect(() => {
-    const adjustHost = (host) => {
-      const parts = host.split(":");
-      if (parts.length === 3) {
-        const ip = parts[0] + ":" + parts[1];
-        const port = parseInt(parts[2], 10);
-        return ip + ":" + (port + 1);
-      } else {
-        throw new Error("Invalid host format");
-      }
-    };
-
-    const adjustedStreamUrl = adjustHost(activeHost);
-    setStreamUrl(adjustedStreamUrl);
-    // setStreamUrl(activeHost);
-  }, [activeHost]);
+    setStreamUrl(streamHost);
+  }, [streamHost]);
 
   const updateConfig = useCallback(async (key, value, retryCount = 3) => {
     const timeout = 5000; // 5 second timeout
@@ -128,8 +115,71 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
     return false;
   }, [activeHost]);
 
+  // Initialize camera settings from server
+  const initializeCameraSettings = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      console.log(`Fetching camera status from ${activeHost}/status`);
+      const response = await fetch(`${activeHost}/status`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const statusData = await response.json();
+        console.log('✓ Camera status fetched successfully:', statusData);
+        
+        // Map server response to our camera settings state
+        const mappedSettings = {
+          camera_open: Boolean(statusData.camera_open || 0),
+          light_bulb: Boolean(statusData.light_bulb || 0),
+          framesize: String(statusData.framesize || '10'),
+          quality: statusData.quality || 10,
+          brightness: statusData.brightness || 0,
+          contrast: statusData.contrast || 0,
+          saturation: statusData.saturation || 0,
+          special_effect: String(statusData.special_effect || '0'),
+          awb: Boolean(statusData.awb || 1),
+          awb_gain: Boolean(statusData.awb_gain || 1),
+          wb_mode: String(statusData.wb_mode || '0'),
+          aec: Boolean(statusData.aec || 1),
+          aec2: Boolean(statusData.aec2 || 0),
+          ae_level: statusData.ae_level || 0,
+          aec_value: statusData.aec_value || 204,
+          agc: Boolean(statusData.agc || 1),
+          gainceiling: statusData.gainceiling || 0,
+          bpc: Boolean(statusData.bpc || 0),
+          wpc: Boolean(statusData.wpc || 1),
+          raw_gma: Boolean(statusData.raw_gma || 1),
+          lenc: Boolean(statusData.lenc || 1),
+          hmirror: Boolean(statusData.hmirror || 0),
+          vflip: Boolean(statusData.vflip || 0), // Default for vflip since not in response
+          dcw: Boolean(statusData.dcw || 1),
+          colorbar: Boolean(statusData.colorbar || 0),
+          led_intensity: statusData.led_intensity || 0
+        };
+        
+        setCameraSettings(mappedSettings);
+        console.log('✓ Camera settings initialized:', mappedSettings);
+        return true;
+      } else {
+        console.warn(`⚠ Status request failed with status ${response.status}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('✗ Failed to initialize camera settings:', error.message);
+      return false;
+    }
+  }, [activeHost]);
+
   // Test connection to camera
-  // 用將畫面設成 720p
   const testConnection = useCallback(async () => {
     setConnectionStatus('unknown');
     try {
@@ -147,6 +197,9 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
         setConnectionStatus('connected');
         setLastError(null);
         console.log('✓ Camera connection test successful');
+        
+        // Initialize camera settings after successful connection
+        await initializeCameraSettings();
       } else {
         setConnectionStatus('disconnected');
         setLastError(`Server error: ${response.status}`);
@@ -160,7 +213,7 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
       }
       console.error('✗ Camera connection test failed:', error.message);
     }
-  }, [activeHost, cameraSettings.camera_open]);
+  }, [activeHost, initializeCameraSettings]);
 
   // Test connection on component mount
   useEffect(() => {
@@ -347,12 +400,22 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
                     ({activeHost})
                   </span>
                 </div>
-                <button
-                  onClick={testConnection}
-                  className="px-3 py-1 sm:px-3 sm:py-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 hover:bg-amber-500/30 transition-colors text-xs sm:text-sm flex-shrink-0"
-                >
-                  Test
-                </button>
+                <div className="flex gap-1 sm:gap-2">
+                  <button
+                    onClick={testConnection}
+                    className="px-2 py-1 sm:px-3 sm:py-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 hover:bg-amber-500/30 transition-colors text-xs sm:text-sm flex-shrink-0"
+                  >
+                    Test
+                  </button>
+                  {connectionStatus === 'connected' && (
+                    <button
+                      onClick={initializeCameraSettings}
+                      className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-500/20 text-blue-400 rounded-lg border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-xs sm:text-sm flex-shrink-0"
+                    >
+                      Sync
+                    </button>
+                  )}
+                </div>
               </div>
               {lastError && (
                 <div className="mt-2 text-red-400 text-sm">
@@ -727,7 +790,7 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, de
                   {showStillImage && (
                     <button
                       onClick={() => setShowStillImage(false)}
-                      className="bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-orange-500/25"
+                      className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-sm sm:text-base transition-all duration-200 shadow-lg hover:shadow-orange-500/25"
                     >
                       Clear Image
                     </button>
