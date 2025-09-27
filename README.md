@@ -63,9 +63,9 @@ npm start
 
 ### 步驟 5: 開啟瀏覽器
 
-專案啟動成功後，系統會自動開啟瀏覽器並導向 `http://localhost:3000`
+專案啟動成功後，系統會自動開啟瀏覽器並導向 `http://localhost:4000`
 
-如果瀏覽器沒有自動開啟，請手動在瀏覽器網址列輸入：`http://localhost:3000`
+如果瀏覽器沒有自動開啟，請手動在瀏覽器網址列輸入：`http://localhost:4000`
 
 ## 專案指令說明
 
@@ -73,15 +73,9 @@ npm start
 ```bash
 npm start
 ```
-啟動開發伺服器，應用程式將在 `http://localhost:3000` 運行。
+啟動開發伺服器，應用程式將在 `http://localhost:4000` 運行。
 - 修改程式碼時會自動重新載入頁面
 - 控制台會顯示任何錯誤訊息
-
-### 執行測試
-```bash
-npm test
-```
-啟動測試執行器，以互動模式監控測試檔案變更。
 
 ### 建置生產版本
 ```bash
@@ -96,6 +90,11 @@ npm run build
 npm run build:standalone
 ```
 建置可獨立執行的版本，包含所有必要的資源檔案。
+
+## API
+將連線端的 URL 改成 /api
+接著就可以在 serve.js 下定義自己的流量轉發方式
+(ex: detector 是放在跟網頁一樣的裝置上，那就可以設為 /api 後，在 serve.js 設置要轉發到 detector 的 port 上)
 
 ## 常見問題排解
 
