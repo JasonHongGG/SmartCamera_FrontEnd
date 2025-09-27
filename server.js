@@ -1,9 +1,8 @@
-import express from "express";
-import { createProxyMiddleware } from "http-proxy-middleware";
-import path from "path";
+const express = require("express");
+const { createProxyMiddleware } = require("http-proxy-middleware");
+const path = require("path");
 
 const app = express();
-const __dirname = path.resolve();
 
 // API Proxy 要放在最前面
 app.use("/api", createProxyMiddleware({
