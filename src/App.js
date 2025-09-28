@@ -5,7 +5,7 @@ import { muiTheme } from './theme';
 import { AppConfigProvider } from './context/AppConfigContext';
 import NavigationBar from './components/Common/NavigationBar';
 import HostConfigDialog from './components/Common/HostConfigDialog';
-import CameraInterface from './CameraInterface'; // 暫時保留舊的
+import CameraInterface from './components/Camera/CameraInterface';
 import DetectionInterface from './components/Detection/DetectionInterface';
 import { useAppConfig } from './context/AppConfigContext';
 import './App.css';
