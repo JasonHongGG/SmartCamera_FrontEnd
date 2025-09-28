@@ -379,7 +379,7 @@ const CameraInterface = ({ baseHost = "http://140.116.6.62:3000", cameraHost, st
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
       <div className="container mx-auto p-3 sm:p-4 md:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
           {/* Control Panel */}
           <div className="lg:col-span-1 space-y-3 sm:space-y-4 md:space-y-6">
             {/* Connection Status */}

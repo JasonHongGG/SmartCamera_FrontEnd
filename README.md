@@ -192,37 +192,5 @@ npx serve -s build
 
 ---
 
-## 學習資源
-
-### React 相關資源
-- [React 官方文件](https://reactjs.org/)
-- [Create React App 文件](https://facebook.github.io/create-react-app/docs/getting-started)
-
-### UI 框架資源
-- [Material-UI 文件](https://mui.com/)
-- [Tailwind CSS 文件](https://tailwindcss.com/)
-- [Lucide React 圖標](https://lucide.dev/)
-
-### 進階主題
-- [程式碼分割](https://facebook.github.io/create-react-app/docs/code-splitting)
-- [效能優化](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-- [Progressive Web App](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-## 授權條款
-
-本專案使用 MIT 授權條款，詳情請參閱 LICENSE 檔案。
-
-## 貢獻指南
-
-歡迎貢獻程式碼！請遵循以下步驟：
-
-1. Fork 本專案
-2. 建立功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交變更 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 開啟 Pull Request
-
----
-
 **SmartCamera_FrontEnd** - 智慧相機前端控制系統
 © 2025 JasonHongGG. All rights reserved.

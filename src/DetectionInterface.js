@@ -7,6 +7,38 @@ import {
   FormControl
 } from '@mui/material';
 
+// Uncontrolled 輸入組件 - 完全避免狀態驅動的重新渲染
+const CustomSensitivityInput = React.memo(({ 
+  label, 
+  defaultValue,
+  onChange, 
+  min, 
+  max, 
+  disabled, 
+  description,
+  inputRef 
+}) => (
+  <div>
+    <label className="block text-slate-300 text-xs font-medium mb-1">
+      {label}
+    </label>
+    <input
+      ref={inputRef}
+      type="number"
+      defaultValue={defaultValue}
+      onChange={onChange}
+      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:border-amber-400 focus:outline-none"
+      min={min}
+      max={max}
+      disabled={disabled}
+    />
+    <p className="text-slate-500 text-xs mt-1">{description}</p>
+  </div>
+));
+
+// 設置組件名稱以便調試
+CustomSensitivityInput.displayName = 'CustomSensitivityInput';
+
 const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHost, detectionHost }) => {
   // 使用 detectionHost 如果提供，否則使用 baseHost (向後相容)
   const activeHost = detectionHost || baseHost;
@@ -24,6 +56,30 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
     motionThreshold: 10000,
     alarmThreshold: 20
   });
+
+  // 本地輸入狀態（使用 ref 儲存值，避免狀態更新導致重新渲染）
+  const localMotionThreshold = useRef(customSensitivity.motionThreshold);
+  const localAlarmThreshold = useRef(customSensitivity.alarmThreshold);
+
+  // 使用 useRef 來穩定輸入框的引用
+  const motionThresholdRef = useRef(null);
+  const alarmThresholdRef = useRef(null);
+
+  // 創建穩定的輸入處理函數（使用 ref，不觸發重新渲染）
+  const handleMotionThresholdChange = useCallback((e) => {
+    const value = parseInt(e.target.value) || 0;
+    localMotionThreshold.current = value;
+    // 不更新狀態，避免重新渲染
+  }, []);
+
+  const handleAlarmThresholdChange = useCallback((e) => {
+    const value = parseInt(e.target.value) || 0;
+    localAlarmThreshold.current = value;
+    // 不更新狀態，避免重新渲染
+  }, []);
+
+  // Apply Custom 按鈕狀態
+  const [applyCustomStatus, setApplyCustomStatus] = useState('idle'); // 'idle', 'applying', 'success', 'error'
 
   const [faceDetection, setFaceDetection] = useState({
     enabled: false,
@@ -558,21 +614,28 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
 
         // 使用 setMotionDetection 的回調形式來獲取最新狀態
         setMotionDetection(prev => {
-          // 在這裡比較最新的狀態值
-          if (prev.lastDetection === motionInfo.lastDetection) {
-            console.log("lastDetection 沒有變化，跳過更新");
+          // 檢查所有相關欄位是否有變化
+          const hasLastDetectionChange = prev.lastDetection !== motionInfo.lastDetection;
+          const expectedStatus = prev.enabled ? 'Active - Monitoring' : 'Inactive';
+          const hasStatusChange = prev.status !== expectedStatus;
+          
+          // 只有在真正有變化時才更新
+          if (!hasLastDetectionChange && !hasStatusChange) {
+            console.log("Motion info 沒有變化，跳過更新");
             return prev; // 返回原狀態，不觸發重新渲染
           }
 
-          console.log("lastDetection 有變化，更新狀態", {
-            old: prev.lastDetection,
-            new: motionInfo.lastDetection
+          console.log("Motion info 有變化，更新狀態", {
+            lastDetectionChanged: hasLastDetectionChange,
+            statusChanged: hasStatusChange,
+            oldLastDetection: prev.lastDetection,
+            newLastDetection: motionInfo.lastDetection
           });
 
           return {
             ...prev,
             lastDetection: motionInfo.lastDetection || prev.lastDetection,
-            status: prev.enabled ? 'Active - Monitoring' : 'Inactive'
+            status: expectedStatus
           };
         });
         
@@ -611,6 +674,11 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
   // 設定運動檢測敏感度
   const setMotionSensitivity = useCallback(async (sensitivity, customValues = null) => {
     try {
+      // 設定 Apply 按鈕狀態為載入中
+      if (customValues) {
+        setApplyCustomStatus('applying');
+      }
+
       let motionThreshold = 10000; // Default for Medium
       let alarmThreshold = 20;     // Default for Medium
       
@@ -648,16 +716,38 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
         
         if (customValues) {
           setCustomSensitivity(customValues);
+          setApplyCustomStatus('success');
+          // 3秒後重置狀態
+          setTimeout(() => setApplyCustomStatus('idle'), 3000);
         }
         
         console.log(`Motion sensitivity set to: ${customValues ? 'custom' : sensitivity}`, { motionThreshold, alarmThreshold });
       } else {
         console.error('Failed to set motion sensitivity:', response.statusText);
+        if (customValues) {
+          setApplyCustomStatus('error');
+          setTimeout(() => setApplyCustomStatus('idle'), 3000);
+        }
       }
     } catch (error) {
       console.error('Error setting motion sensitivity:', error);
+      if (customValues) {
+        setApplyCustomStatus('error');
+        setTimeout(() => setApplyCustomStatus('idle'), 3000);
+      }
     }
   }, [activeHost]);
+
+  // Apply Custom 按鈕處理函數
+  const handleApplyCustom = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const currentValues = {
+      motionThreshold: localMotionThreshold.current,
+      alarmThreshold: localAlarmThreshold.current
+    };
+    setMotionSensitivity('custom', currentValues);
+  }, [setMotionSensitivity]);
 
   const toggleMotionDetection = async () => {
     const newEnabled = !motionDetection.enabled;
@@ -704,13 +794,25 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
 
         // 使用 setFaceDetection 的回調形式來獲取最新狀態
         setFaceDetection(prev => {
-          // 在這裡比較最新的狀態值
-          if (prev.faceCount === faceInfo.faceCount && prev.faceNames === faceInfo.faceNames) {
+          // 檢查所有相關欄位是否有變化
+          const hasFaceCountChange = prev.faceCount !== (faceInfo.faceCount || 0);
+          const hasFaceNamesChange = prev.faceNames !== (faceInfo.faceNames || prev.faceNames);
+          const newLastDetection = faceInfo.faceCount > 0 ? faceInfo.lastDetection : prev.lastDetection;
+          const hasLastDetectionChange = prev.lastDetection !== newLastDetection;
+          const expectedStatus = prev.enabled ? (faceInfo.faceCount > 0 ? `Active - ${faceInfo.faceCount} Face(s) Detected` : 'Active - Scanning') : 'Inactive';
+          const hasStatusChange = prev.status !== expectedStatus;
+          
+          // 只有在真正有變化時才更新
+          if (!hasFaceCountChange && !hasFaceNamesChange && !hasLastDetectionChange && !hasStatusChange) {
             console.log("Face info 沒有變化，跳過更新");
             return prev; // 返回原狀態，不觸發重新渲染
           }
 
           console.log("Face info 有變化，更新狀態", {
+            faceCountChanged: hasFaceCountChange,
+            faceNamesChanged: hasFaceNamesChange,
+            lastDetectionChanged: hasLastDetectionChange,
+            statusChanged: hasStatusChange,
             oldCount: prev.faceCount,
             newCount: faceInfo.faceCount,
             oldNames: prev.faceNames,
@@ -721,8 +823,8 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
             ...prev,
             faceCount: faceInfo.faceCount || 0,
             faceNames: faceInfo.faceNames || prev.faceNames,
-            lastDetection: faceInfo.faceCount > 0 ? faceInfo.lastDetection : prev.lastDetection,
-            status: prev.enabled ? (faceInfo.faceCount > 0 ? `Active - ${faceInfo.faceCount} Face(s) Detected` : 'Active - Scanning') : 'Inactive'
+            lastDetection: newLastDetection,
+            status: expectedStatus
           };
         });
         
@@ -771,17 +873,33 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
 
         // 使用 setCrosslineDetection 的回調形式來獲取最新狀態
         setCrosslineDetection(prev => {
-          // 在這裡比較最新的狀態值
-          if (prev.crossingEvent === crosslineInfo.crossingEvent && prev.lastDetection === crosslineInfo.lastDetection) {
+          // 檢查所有相關欄位是否有變化
+          const hasCrossingEventChange = prev.crossingEvent !== (crosslineInfo.crossingEvent || prev.crossingEvent);
+          const hasLastDetectionChange = prev.lastDetection !== (crosslineInfo.lastDetection || prev.lastDetection);
+          const expectedStatus = prev.enabled ? 'Active - Monitoring' : 'Inactive';
+          const hasStatusChange = prev.status !== expectedStatus;
+          
+          // 只有在真正有變化時才更新
+          if (!hasCrossingEventChange && !hasLastDetectionChange && !hasStatusChange) {
             console.log("Crossline events 沒有變化，跳過更新");
             return prev; // 返回原狀態，不觸發重新渲染
           }
+
+          console.log("Crossline events 有變化，更新狀態", {
+            crossingEventChanged: hasCrossingEventChange,
+            lastDetectionChanged: hasLastDetectionChange,
+            statusChanged: hasStatusChange,
+            oldCrossingEvent: prev.crossingEvent,
+            newCrossingEvent: crosslineInfo.crossingEvent,
+            oldLastDetection: prev.lastDetection,
+            newLastDetection: crosslineInfo.lastDetection
+          });
 
           return {
             ...prev,
             crossingEvent: crosslineInfo.crossingEvent || prev.crossingEvent,
             lastDetection: crosslineInfo.lastDetection || prev.lastDetection,
-            status: prev.enabled ? 'Active - Monitoring' : 'Inactive'
+            status: expectedStatus
           };
         });
         
@@ -937,6 +1055,8 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
     );
   };
 
+
+
   const DetectionGroup = ({ title, icon: Icon, enabled, onToggle, status, children, streaming, streamUrl }) => (
     <div className="bg-gradient-to-br from-slate-800 to-slate-700 p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl sm:rounded-2xl lg:rounded-3xl border border-slate-600/50 shadow-2xl backdrop-blur-md hover:shadow-slate-700/20 transition-all duration-300">
       {/* Header Section */}
@@ -1047,6 +1167,7 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
                     if (value !== 'custom') {
                       setMotionSensitivity(value);
                     }
+                    // 不需要在這裡同步狀態，因為localCustomSensitivity已經被初始化且獨立管理
                   }}
                   disabled={!motionDetection.enabled}
                   sx={{
@@ -1127,60 +1248,70 @@ const CameraDetectionInterface = ({ baseHost = "http://localhost:5000", cameraHo
                   </div>
                   
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-slate-300 text-xs font-medium mb-1">
-                        Motion Threshold
-                      </label>
-                      <input
-                        type="number"
-                        value={customSensitivity.motionThreshold}
-                        onChange={(e) => setCustomSensitivity(prev => ({
-                          ...prev,
-                          motionThreshold: parseInt(e.target.value) || 0
-                        }))}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:border-amber-400 focus:outline-none"
-                        min="0"
-                        max="50000"
-                        disabled={!motionDetection.enabled}
-                      />
-                      <p className="text-slate-500 text-xs mt-1">Range: 0-50000 (Higher = less sensitive)</p>
-                    </div>
+                    <CustomSensitivityInput
+                      label="Motion Threshold"
+                      defaultValue={customSensitivity.motionThreshold}
+                      onChange={handleMotionThresholdChange}
+                      min="0"
+                      max="50000"
+                      disabled={!motionDetection.enabled}
+                      description="Range: 0-50000 (Higher = less sensitive)"
+                      inputRef={motionThresholdRef}
+                    />
                     
-                    <div>
-                      <label className="block text-slate-300 text-xs font-medium mb-1">
-                        Alarm Threshold
-                      </label>
-                      <input
-                        type="number"
-                        value={customSensitivity.alarmThreshold}
-                        onChange={(e) => setCustomSensitivity(prev => ({
-                          ...prev,
-                          alarmThreshold: parseInt(e.target.value) || 0
-                        }))}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:border-amber-400 focus:outline-none"
-                        min="0"
-                        max="100"
-                        disabled={!motionDetection.enabled}
-                      />
-                      <p className="text-slate-500 text-xs mt-1">Range: 0-100 (Higher = more frames required)</p>
-                    </div>
+                    <CustomSensitivityInput
+                      label="Alarm Threshold"
+                      defaultValue={customSensitivity.alarmThreshold}
+                      onChange={handleAlarmThresholdChange}
+                      min="0"
+                      max="100"
+                      disabled={!motionDetection.enabled}
+                      description="Range: 0-100 (Higher = more frames required)"
+                      inputRef={alarmThresholdRef}
+                    />
                   </div>
                   
                   <div className="flex gap-2 pt-1 sm:pt-2">
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setMotionSensitivity('custom', customSensitivity);
-                      }}
-                      disabled={!motionDetection.enabled}
-                      className={`flex-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                        !motionDetection.enabled
+                      onClick={handleApplyCustom}
+                      disabled={!motionDetection.enabled || applyCustomStatus === 'applying'}
+                      className={`flex-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs font-semibold transition-all duration-200 relative overflow-hidden ${
+                        !motionDetection.enabled || applyCustomStatus === 'applying'
                           ? 'bg-slate-600/60 text-slate-400 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black shadow-lg'
+                          : applyCustomStatus === 'success'
+                            ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
+                            : applyCustomStatus === 'error'
+                              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
+                              : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black shadow-lg'
                       }`}
                     >
-                      Apply Custom
+                      {applyCustomStatus === 'applying' && (
+                        <div className="absolute inset-0 bg-amber-500/20 animate-pulse"></div>
+                      )}
+                      <span className="relative flex items-center justify-center gap-1">
+                        {applyCustomStatus === 'applying' ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                            <span>Applying...</span>
+                          </>
+                        ) : applyCustomStatus === 'success' ? (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Applied!</span>
+                          </>
+                        ) : applyCustomStatus === 'error' ? (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            <span>Failed</span>
+                          </>
+                        ) : (
+                          'Apply Custom'
+                        )}
+                      </span>
                     </button>
                   </div>
                 </div>
