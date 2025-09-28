@@ -47,7 +47,27 @@ const AppContent = () => {
       />
       
       <main>
-        {renderCurrentPage()}
+        {/* {renderCurrentPage()} */}
+        {/* Camera Interface - 用 CSS 控制顯示/隱藏 */}
+        <div 
+          className={currentPage === 'camera' ? 'block' : 'hidden'}
+          style={{ display: currentPage === 'camera' ? 'block' : 'none' }}
+        >
+          <CameraInterface 
+            baseHost={config.cameraHost} 
+            cameraHost={config.cameraHost}
+            streamHost={config.streamHost}
+            detectionHost={config.detectionHost}
+          />
+        </div>
+
+        {/* Detection Interface - 用 CSS 控制顯示/隱藏 */}
+        <div 
+          className={currentPage === 'detection' ? 'block' : 'hidden'}
+          style={{ display: currentPage === 'detection' ? 'block' : 'none' }}
+        >
+          <DetectionInterface />
+        </div>
       </main>
 
       <HostConfigDialog
