@@ -1,8 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-// import App from './App';
-import App from './App-refactored';
+import App from './App';
 
 // 等待 DOM 載入完成後再執行 React 渲染
 function initializeApp() {
