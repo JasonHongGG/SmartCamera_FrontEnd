@@ -10,7 +10,7 @@ class ImageApiService {
   }
 
   /**
-   * 獲取所有圖片列表
+   * 獲取所有圖片列表 (包含完整數據)
    */
   async getAllImages() {
     try {
@@ -42,6 +42,38 @@ class ImageApiService {
         errorMessage = `Cannot reach server at ${this.baseHost}`;
       }
       return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * 獲取圖片列表元數據 (不包含 base64 數據，用於分頁)
+   */
+  async getImageMetadata() {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(`${this.baseHost}/storage/images/metadata`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const metadata = await response.json();
+        console.log('✓ Image metadata loaded successfully:', metadata.length);
+        return { success: true, images: this.sortImagesByDate(metadata) };
+      } else {
+        // Fallback to getAllImages if metadata endpoint doesn't exist
+        console.warn(`⚠ Metadata endpoint not available, falling back to full images`);
+        return await this.getAllImages();
+      }
+    } catch (error) {
+      console.error('✗ Failed to load image metadata:', error.message);
+      // Fallback to getAllImages
+      return await this.getAllImages();
     }
   }
 

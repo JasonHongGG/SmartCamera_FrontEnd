@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Image as ImageIcon, 
   Grid3X3, 
@@ -10,7 +10,11 @@ import {
   ZoomIn,
   Download,
   Calendar,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { useImageViewer } from '../../hooks/imageHooks';
 import { useAppConfig } from '../../context/AppConfigContext';
@@ -21,17 +25,23 @@ const ImageViewer = () => {
   
   const {
     images,
+    allImages,
     loading,
     error,
-    selectedImage,
     viewMode,
     sortOrder,
+    currentPage,
+    totalPages,
+    itemsPerPage,
     refreshImages,
     toggleSortOrder,
     toggleViewMode,
+    goToPage,
+    goToNextPage,
+    goToPrevPage,
     selectImage,
-    clearSelection,
-    getImageDataUrl
+    getImageDataUrl,
+    ensureImageLoaded
   } = useImageViewer(config.detectionHost);
 
   const formatDateTime = (filename) => {
@@ -70,13 +80,70 @@ const ImageViewer = () => {
     document.body.removeChild(link);
   };
 
+  // Lazy loading image component
+  const LazyImage = ({ image, alt, className, onClick }) => {
+    const [imageData, setImageData] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+
+    useEffect(() => {
+      const loadImage = async () => {
+        try {
+          setIsLoading(true);
+          setHasError(false);
+          await ensureImageLoaded(image);
+          const dataUrl = getImageDataUrl(image);
+          setImageData(dataUrl);
+        } catch (error) {
+          console.error('Failed to load image:', error);
+          setHasError(true);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadImage();
+    }, [image]);
+
+    if (hasError) {
+      return (
+        <div className={`${className} bg-slate-700/50 flex items-center justify-center`}>
+          <div className="text-slate-400 text-xs text-center">
+            <ImageIcon className="w-6 h-6 mx-auto mb-1" />
+            載入失敗
+          </div>
+        </div>
+      );
+    }
+
+    if (isLoading || !imageData) {
+      return (
+        <div className={`${className} bg-slate-700/50 flex items-center justify-center`}>
+          <div className="text-slate-400 text-xs text-center">
+            <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1" />
+            載入中...
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={imageData}
+        alt={alt}
+        className={className}
+        onClick={onClick}
+      />
+    );
+  };
+
   const ImageCard = ({ image, isGrid = true }) => (
     <div className={`bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl border border-slate-600/50 shadow-xl backdrop-blur-sm transition-all duration-200 hover:shadow-2xl hover:border-amber-500/30 cursor-pointer ${
       isGrid ? 'p-2 sm:p-3' : 'p-3 sm:p-4 flex items-center gap-3 sm:gap-4'
     }`}>
       <div className={`relative ${isGrid ? 'aspect-video' : 'flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20'} overflow-hidden rounded-lg bg-slate-700/50`}>
-        <img
-          src={getImageDataUrl(image)}
+        <LazyImage
+          image={image}
           alt={image.filename}
           className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
           onClick={() => handleImageClick(image)}
@@ -194,9 +261,14 @@ const ImageViewer = () => {
             </div>
           </div>
           
-          {images.length > 0 && (
+          {allImages.length > 0 && (
             <div className="mt-3 sm:mt-4 text-slate-300 text-xs sm:text-sm">
-              <span className="block sm:inline">總共 {images.length} 張圖片</span>
+              <span className="block sm:inline">
+                總共 {allImages.length} 張圖片
+                {totalPages > 1 && (
+                  <span> (第 {currentPage} 頁，共 {totalPages} 頁)</span>
+                )}
+              </span>
               <span className="hidden sm:inline"> • </span>
               <span className="block sm:inline">排序: {sortOrder === 'newest' ? '最新優先' : '最舊優先'}</span>
               <span className="hidden sm:inline"> • </span>
@@ -245,19 +317,100 @@ const ImageViewer = () => {
         )}
 
         {!loading && !error && images.length > 0 && (
-          <div className={
-            viewMode === 'grid' 
-              ? 'grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4'
-              : 'space-y-3 sm:space-y-4'
-          }>
-            {images.map((image, index) => (
-              <ImageCard 
-                key={`${image.filename}-${index}`} 
-                image={image} 
-                isGrid={viewMode === 'grid'} 
-              />
-            ))}
-          </div>
+          <>
+            <div className={
+              viewMode === 'grid' 
+                ? 'grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4'
+                : 'space-y-3 sm:space-y-4'
+            }>
+              {images.map((image, index) => (
+                <ImageCard 
+                  key={`${image.filename}-${index}`} 
+                  image={image} 
+                  isGrid={viewMode === 'grid'} 
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                {/* Pagination Info */}
+                <div className="text-slate-400 text-sm">
+                  顯示第 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, allImages.length)} 項，共 {allImages.length} 項
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <button
+                    onClick={() => goToPage(1)}
+                    disabled={currentPage === 1}
+                    className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-600/50 hover:bg-slate-500/70 disabled:bg-slate-700/30 disabled:text-slate-500 rounded transition-colors flex items-center justify-center"
+                    title="第一頁"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-600/50 hover:bg-slate-500/70 disabled:bg-slate-700/30 disabled:text-slate-500 rounded transition-colors flex items-center justify-center"
+                    title="上一頁"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => goToPage(pageNum)}
+                          className={`w-8 h-8 sm:w-9 sm:h-9 rounded transition-colors flex items-center justify-center text-sm font-medium ${
+                            currentPage === pageNum
+                              ? 'bg-amber-500/30 text-amber-400 border border-amber-500/50'
+                              : 'bg-slate-600/50 hover:bg-slate-500/70 text-slate-300'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-600/50 hover:bg-slate-500/70 disabled:bg-slate-700/30 disabled:text-slate-500 rounded transition-colors flex items-center justify-center"
+                    title="下一頁"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => goToPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-600/50 hover:bg-slate-500/70 disabled:bg-slate-700/30 disabled:text-slate-500 rounded transition-colors flex items-center justify-center"
+                    title="最後一頁"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Fullscreen Modal */}
@@ -271,8 +424,8 @@ const ImageViewer = () => {
                 <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
               
-              <img
-                src={getImageDataUrl(fullscreenImage)}
+              <LazyImage
+                image={fullscreenImage}
                 alt={fullscreenImage.filename}
                 className="max-w-full max-h-full object-contain rounded-lg mx-auto block"
               />
