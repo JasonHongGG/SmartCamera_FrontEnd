@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Activity, Settings, Globe } from 'lucide-react';
+import { Camera, Activity, Settings, Globe, Image } from 'lucide-react';
 import { AppBar, Toolbar, Typography, Button, IconButton } from '@mui/material';
 
 const NavigationBar = ({ 
@@ -18,6 +18,11 @@ const NavigationBar = ({
       id: 'detection',
       label: 'Detection Systems',
       icon: Activity
+    },
+    {
+      id: 'images',
+      label: 'Image Viewer',
+      icon: Image
     }
   ];
 
@@ -72,26 +77,26 @@ const NavigationBar = ({
         <div className="flex-1 min-w-2"></div>
 
         {/* Mobile: Compact Layout */}
-        <div className="flex items-center gap-1 sm:hidden">
+        <div className="flex items-center gap-0.5 sm:hidden">
           <IconButton
             onClick={onOpenHostDialog}
             size="small"
             sx={{
               border: '1px solid rgba(255, 255, 254, 0.3)',
               borderRadius: '50% !important', // 強制保持圓形
-              width: '36px !important',
-              height: '36px !important',
-              minWidth: '36px !important',
-              minHeight: '36px !important',
-              maxWidth: '36px !important',
-              maxHeight: '36px !important',
+              width: '32px !important',
+              height: '32px !important',
+              minWidth: '32px !important',
+              minHeight: '32px !important',
+              maxWidth: '32px !important',
+              maxHeight: '32px !important',
               padding: '0 !important',
               '&:hover': {
                 bgcolor: 'rgba(189, 189, 189, 0.2)',
               }
             }}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-3.5 h-3.5" />
           </IconButton>
           
           {navigationItems.map((item) => {
@@ -107,13 +112,13 @@ const NavigationBar = ({
                   bgcolor: isActive ? '#eab308' : 'transparent',
                   color: isActive ? '#000000' : '#d1d5db',
                   border: `1px solid ${isActive ? '#eab308' : '#4b5563'}`,
-                  borderRadius: '8px !important', // 強制正方形圓角
-                  width: '36px !important',
-                  height: '36px !important',
-                  minWidth: '36px !important',
-                  minHeight: '36px !important',
-                  maxWidth: '36px !important',
-                  maxHeight: '36px !important',
+                  borderRadius: '6px !important', // 稍微小一點的圓角
+                  width: '32px !important',
+                  height: '32px !important',
+                  minWidth: '32px !important',
+                  minHeight: '32px !important',
+                  maxWidth: '32px !important',
+                  maxHeight: '32px !important',
                   padding: '0 !important',
                   '&:hover': {
                     bgcolor: isActive ? '#e9be3cff' : '#374151',
@@ -121,7 +126,7 @@ const NavigationBar = ({
                   transition: 'all 0.2s ease-in-out'
                 }}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5" />
               </IconButton>
             );
           })}
@@ -174,7 +179,7 @@ const NavigationBar = ({
                 }}
               >
                 <span className="font-medium">
-                  {item.id === 'camera' ? 'Camera Control' : 'Detection Systems'}
+                  {item.label}
                 </span>
               </Button>
             );

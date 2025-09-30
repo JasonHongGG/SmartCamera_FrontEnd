@@ -2,3 +2,4 @@
 export * from './commonHooks';
 export * from './detectionHooks';
 export * from './cameraHooks';
+export * from './imageHooks';

@@ -7,6 +7,7 @@ import NavigationBar from './components/Common/NavigationBar';
 import HostConfigDialog from './components/Common/HostConfigDialog';
 import CameraInterface from './components/Camera/CameraInterface';
 import DetectionInterface from './components/Detection/DetectionInterface';
+import ImageViewer from './components/ImageViewer/ImageViewer';
 import { useAppConfig } from './context/AppConfigContext';
 import './App.css';
 
@@ -67,6 +68,14 @@ const AppContent = () => {
           style={{ display: currentPage === 'detection' ? 'block' : 'none' }}
         >
           <DetectionInterface />
+        </div>
+
+        {/* Image Viewer - 用 CSS 控制顯示/隱藏 */}
+        <div 
+          className={currentPage === 'images' ? 'block' : 'hidden'}
+          style={{ display: currentPage === 'images' ? 'block' : 'none' }}
+        >
+          <ImageViewer />
         </div>
       </main>
 
