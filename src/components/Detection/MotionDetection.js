@@ -61,15 +61,27 @@ const MotionDetection = () => {
   // 敏感度選擇處理
   const handleSensitivityChange = useCallback(async (e) => {
     const value = e.target.value;
+    console.log('Sensitivity change attempt:', value, 'Current state:', state.sensitivity);
     
     try {
-      if (value !== 'custom') {
+      if (value === 'custom') {
+        // 對於 custom 值，我們需要調用 setSensitivity 來更新狀態
+        // 使用當前的 custom 值
+        const currentCustomValues = {
+          motionThreshold: localMotionThreshold.current,
+          alarmThreshold: localAlarmThreshold.current
+        };
+        console.log('Setting custom sensitivity with values:', currentCustomValues);
+        await setSensitivity('custom', currentCustomValues);
+      } else {
+        console.log('Setting predefined sensitivity:', value);
         await setSensitivity(value);
       }
+      console.log('Sensitivity change successful');
     } catch (error) {
       console.error('Failed to set sensitivity:', error);
     }
-  }, [setSensitivity]);
+  }, [setSensitivity, state.sensitivity]);
 
   return (
     <DetectionGroup
@@ -108,7 +120,7 @@ const MotionDetection = () => {
             <Select
               value={state.sensitivity}
               onChange={handleSensitivityChange}
-              disabled={!state.enabled}
+              // disabled={!state.enabled}
               sx={{
                 color: 'white',
                 '& .MuiOutlinedInput-notchedOutline': {
@@ -131,11 +143,26 @@ const MotionDetection = () => {
                 },
               }}
               MenuProps={{
+                disableScrollLock: true,
+                disablePortal: false,
                 PaperProps: {
                   sx: {
                     bgcolor: 'rgb(51, 65, 85)',
+                    border: '1px solid rgba(148, 163, 184, 0.3)',
+                    borderRadius: '8px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    maxHeight: '200px',
+                    // 隱藏滾動條
+                    '&::-webkit-scrollbar': {
+                      display: 'none',
+                    },
+                    scrollbarWidth: 'none', // Firefox
+                    msOverflowStyle: 'none', // IE and Edge
+                    overflow: 'auto',
                     '& .MuiMenuItem-root': {
                       color: 'white',
+                      padding: '8px 16px',
+                      minHeight: '40px',
                       '&:hover': {
                         bgcolor: 'rgba(251, 191, 36, 0.1)',
                       },
@@ -147,8 +174,25 @@ const MotionDetection = () => {
                         },
                       },
                     },
+                    // 確保選單內容也隱藏滾動條
+                    '& .MuiMenu-list': {
+                      '&::-webkit-scrollbar': {
+                        display: 'none',
+                      },
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none',
+                    },
                   },
                 },
+                anchorOrigin: {
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                },
+                transformOrigin: {
+                  vertical: 'top',
+                  horizontal: 'left',
+                },
+                getContentAnchorEl: null,
               }}
             >
               <MenuItem value="low">

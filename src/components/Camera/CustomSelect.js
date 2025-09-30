@@ -36,11 +36,26 @@ const CustomSelect = ({ id, label, value, options, onChange }) => (
           },
         }}
         MenuProps={{
+          disableScrollLock: true,
+          disablePortal: false,
           PaperProps: {
             sx: {
               bgcolor: '#374151',
+              border: '1px solid #6b7280',
+              borderRadius: '8px',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              maxHeight: '200px',
+              // 隱藏滾動條
+              '&::-webkit-scrollbar': {
+                display: 'none',
+              },
+              scrollbarWidth: 'none', // Firefox
+              msOverflowStyle: 'none', // IE and Edge
+              overflow: 'auto',
               '& .MuiMenuItem-root': {
                 color: 'white',
+                padding: '8px 14px',
+                minHeight: '36px',
                 '&:hover': {
                   backgroundColor: '#4b5563',
                 },
@@ -52,8 +67,25 @@ const CustomSelect = ({ id, label, value, options, onChange }) => (
                   },
                 },
               },
+              // 確保選單內容也隱藏滾動條
+              '& .MuiMenu-list': {
+                '&::-webkit-scrollbar': {
+                  display: 'none',
+                },
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              },
             },
           },
+          anchorOrigin: {
+            vertical: 'bottom',
+            horizontal: 'left',
+          },
+          transformOrigin: {
+            vertical: 'top',
+            horizontal: 'left',
+          },
+          getContentAnchorEl: null,
         }}
       >
         {options.map(option => (

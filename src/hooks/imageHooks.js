@@ -6,12 +6,12 @@ export const useImageViewer = (detectionHost) => {
   const [images, setImages] = useState([]); // Current page images
   const [loadedImages, setLoadedImages] = useState(new Map()); // Cache for loaded image data
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(false); // Loading state for current page
   const [error, setError] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20); // 每頁顯示 20 張圖片
+  const [itemsPerPage, setItemsPerPage] = useState(10); // 每頁顯示圖片數量
   const [totalPages, setTotalPages] = useState(0);
   const apiServiceRef = useRef(null);
 
@@ -33,13 +33,57 @@ export const useImageViewer = (detectionHost) => {
     }
   }, [allImages.length, itemsPerPage, currentPage]);
 
-  // Update displayed images when page or allImages changes
+  // Load current page images when page changes
   useEffect(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageImages = allImages.slice(startIndex, endIndex);
-    setImages(pageImages);
-  }, [allImages, currentPage, itemsPerPage]);
+    const loadCurrentPageImages = async () => {
+      if (allImages.length === 0) return;
+
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const pageImages = allImages.slice(startIndex, endIndex);
+
+      // 檢查哪些圖片還沒有載入完整數據
+      const imagesToLoad = pageImages
+        .filter(img => !loadedImages.has(img.filename))
+        .map(img => img.filename);
+
+      if (imagesToLoad.length > 0) {
+        setPageLoading(true);
+        
+        try {
+          const result = await apiServiceRef.current.getBatchImages(imagesToLoad);
+          if (result.success) {
+            // 更新 loadedImages cache
+            const newLoadedImages = new Map(loadedImages);
+            result.images.forEach(image => {
+              newLoadedImages.set(image.filename, image);
+            });
+            setLoadedImages(newLoadedImages);
+
+            // 合併元數據和圖片數據
+            const mergedImages = pageImages.map(metadata => {
+              const imageData = newLoadedImages.get(metadata.filename);
+              return imageData ? { ...metadata, ...imageData } : metadata;
+            });
+            setImages(mergedImages);
+          }
+        } catch (error) {
+          console.error('Failed to load page images:', error);
+        } finally {
+          setPageLoading(false);
+        }
+      } else {
+        // 所有圖片都已載入，直接合併數據
+        const mergedImages = pageImages.map(metadata => {
+          const imageData = loadedImages.get(metadata.filename);
+          return imageData ? { ...metadata, ...imageData } : metadata;
+        });
+        setImages(mergedImages);
+      }
+    };
+
+    loadCurrentPageImages();
+  }, [allImages, currentPage, itemsPerPage, loadedImages]);
 
   // Load all images metadata (without base64 data)
   const loadImages = useCallback(async () => {
@@ -48,7 +92,7 @@ export const useImageViewer = (detectionHost) => {
     setLoading(true);
     setError(null);
 
-    // First load metadata only for faster initial load
+    // 只載入元數據列表，速度很快
     const result = await apiServiceRef.current.getImageMetadata();
 
     if (result.success) {
@@ -113,6 +157,7 @@ export const useImageViewer = (detectionHost) => {
 
   // Refresh images
   const refreshImages = useCallback(() => {
+    setLoadedImages(new Map()); // Clear cache
     loadImages();
   }, [loadImages]);
 
@@ -145,14 +190,10 @@ export const useImageViewer = (detectionHost) => {
     }
   }, [currentPage]);
 
-  // Select image for detailed view
-  const selectImage = useCallback((image) => {
-    setSelectedImage(image);
-  }, []);
-
-  // Clear selected image
-  const clearSelection = useCallback(() => {
-    setSelectedImage(null);
+  // Change items per page
+  const changeItemsPerPage = useCallback((newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
   }, []);
 
   // Auto-refresh on mount
@@ -167,8 +208,8 @@ export const useImageViewer = (detectionHost) => {
     allImages,
     loadedImages,
     loading,
+    pageLoading,
     error,
-    selectedImage,
     viewMode,
     sortOrder,
     currentPage,
@@ -182,8 +223,7 @@ export const useImageViewer = (detectionHost) => {
     goToPage,
     goToNextPage,
     goToPrevPage,
-    selectImage,
-    clearSelection,
+    changeItemsPerPage,
     getImageDataUrl,
     ensureImageLoaded,
     apiService: apiServiceRef.current

@@ -16,6 +16,7 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from 'lucide-react';
+import { IconButton, Tooltip, Select, MenuItem, FormControl } from '@mui/material';
 import { useImageViewer } from '../../hooks/imageHooks';
 import { useAppConfig } from '../../context/AppConfigContext';
 
@@ -27,6 +28,7 @@ const ImageViewer = () => {
     images,
     allImages,
     loading,
+    pageLoading,
     error,
     viewMode,
     sortOrder,
@@ -39,7 +41,7 @@ const ImageViewer = () => {
     goToPage,
     goToNextPage,
     goToPrevPage,
-    selectImage,
+    changeItemsPerPage,
     getImageDataUrl,
     ensureImageLoaded
   } = useImageViewer(config.detectionHost);
@@ -64,7 +66,7 @@ const ImageViewer = () => {
   };
 
   const handleImageClick = (image) => {
-    selectImage(image);
+    setFullscreenImage(image);
   };
 
   const handleFullscreen = (image) => {
@@ -191,26 +193,26 @@ const ImageViewer = () => {
         </div>
         
         {isGrid && (
-          <div className="flex gap-1 sm:gap-2 mt-1.5 sm:mt-2">
+          <div className="flex gap-1 mt-1.5">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleFullscreen(image);
               }}
-              className="flex-1 py-1 sm:py-1.5 px-1 sm:px-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+              className="flex-1 py-1.5 px-2 sm:py-1.5 sm:px-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 min-h-[28px] h-7"
             >
               <ZoomIn className="w-3 h-3" />
-              <span className="hidden xs:inline">放大</span>
+              <span className="inline">放大</span>
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleDownload(image);
               }}
-              className="flex-1 py-1 sm:py-1.5 px-1 sm:px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+              className="flex-1 py-1.5 px-2 sm:py-1.5 sm:px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 min-h-[28px] h-7"
             >
               <Download className="w-3 h-3" />
-              <span className="hidden xs:inline">下載</span>
+              <span className="inline">下載</span>
             </button>
           </div>
         )}
@@ -223,7 +225,7 @@ const ImageViewer = () => {
       <div className="container mx-auto p-3 sm:p-4 md:p-6">
         {/* Header */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-700 p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl border border-slate-600/50 shadow-xl backdrop-blur-sm mb-4 sm:mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg border border-amber-500/30 flex-shrink-0">
                 <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
@@ -234,30 +236,207 @@ const ImageViewer = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <button
-                onClick={toggleViewMode}
-                className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-600/50 hover:bg-slate-500/70 rounded transition-colors flex items-center justify-center"
-                title={viewMode === 'grid' ? '切換到列表檢視' : '切換到網格檢視'}
-              >
-                {viewMode === 'grid' ? <List className="w-4 h-4 sm:w-5 sm:h-5" /> : <Grid3X3 className="w-4 h-4 sm:w-5 sm:h-5" />}
-              </button>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <Tooltip title={viewMode === 'grid' ? '切換到列表檢視' : '切換到網格檢視'}>
+                <IconButton
+                  onClick={toggleViewMode}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    minWidth: '32px',
+                    minHeight: '32px',
+                    '@media (min-width: 640px)': {
+                      width: '36px',
+                      height: '36px',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                    },
+                    bgcolor: 'rgba(71, 85, 105, 0.5)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '&:hover': {
+                      bgcolor: 'rgba(71, 85, 105, 0.7)',
+                    },
+                  }}
+                >
+                  {viewMode === 'grid' ? 
+                    <List style={{ width: '14px', height: '14px' }} /> : 
+                    <Grid3X3 style={{ width: '14px', height: '14px' }} />
+                  }
+                </IconButton>
+              </Tooltip>
               
-              <button
-                onClick={toggleSortOrder}
-                className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-600/50 hover:bg-slate-500/70 rounded transition-colors flex items-center justify-center"
-                title={sortOrder === 'newest' ? '切換到最舊優先' : '切換到最新優先'}
-              >
-                {sortOrder === 'newest' ? <SortDesc className="w-4 h-4 sm:w-5 sm:h-5" /> : <SortAsc className="w-4 h-4 sm:w-5 sm:h-5" />}
-              </button>
+              <Tooltip title={sortOrder === 'newest' ? '切換到最舊優先' : '切換到最新優先'}>
+                <IconButton
+                  onClick={toggleSortOrder}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    minWidth: '32px',
+                    minHeight: '32px',
+                    '@media (min-width: 640px)': {
+                      width: '36px',
+                      height: '36px',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                    },
+                    bgcolor: 'rgba(71, 85, 105, 0.5)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '&:hover': {
+                      bgcolor: 'rgba(71, 85, 105, 0.7)',
+                    },
+                  }}
+                >
+                  {sortOrder === 'newest' ? 
+                    <SortDesc style={{ width: '14px', height: '14px' }} /> : 
+                    <SortAsc style={{ width: '14px', height: '14px' }} />
+                  }
+                </IconButton>
+              </Tooltip>
               
-              <button
-                onClick={refreshImages}
-                className="w-9 h-9 sm:w-10 sm:h-10 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded transition-colors flex items-center justify-center"
-                disabled={loading}
-              >
-                <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+              <Tooltip title="重新載入">
+                <IconButton
+                  onClick={refreshImages}
+                  disabled={loading}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    minWidth: '32px',
+                    minHeight: '32px',
+                    '@media (min-width: 640px)': {
+                      width: '36px',
+                      height: '36px',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                    },
+                    bgcolor: 'rgba(245, 158, 11, 0.2)',
+                    color: '#fbbf24',
+                    borderRadius: '8px',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '&:hover': {
+                      bgcolor: 'rgba(245, 158, 11, 0.3)',
+                    },
+                    '&:disabled': {
+                      bgcolor: 'rgba(245, 158, 11, 0.1)',
+                      color: '#fbbf24',
+                    },
+                  }}
+                >
+                  <RefreshCw style={{ 
+                    width: '14px', 
+                    height: '14px',
+                    animation: loading ? 'spin 1s linear infinite' : 'none'
+                  }} />
+                </IconButton>
+              </Tooltip>
+
+              {/* Items per page selector */}
+              <div className="flex items-center gap-2 flex-shrink-0" style={{ minWidth: '90px' }}>
+                <FormControl size="small" sx={{ minWidth: '90px', width: '90px' }}>
+                  <Select
+                    value={itemsPerPage}
+                    onChange={(e) => changeItemsPerPage(Number(e.target.value))}
+                    sx={{
+                      minWidth: '90px',
+                      width: '90px',
+                      height: '32px',
+                      backgroundColor: '#374151',
+                      color: 'white',
+                      fontSize: '0.75rem',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#6b7280',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#9ca3af',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#eab308',
+                      },
+                      '& .MuiSvgIcon-root': {
+                        color: 'white',
+                      },
+                      '& .MuiSelect-select': {
+                        padding: '6px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                      },
+                    }}
+                    MenuProps={{
+                      disableScrollLock: true,
+                      disablePortal: false,
+                      PaperProps: {
+                        sx: {
+                          bgcolor: '#374151',
+                          border: '1px solid #6b7280',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                          minWidth: '90px',
+                          maxHeight: '200px',
+                          // 隱藏滾動條
+                          '&::-webkit-scrollbar': {
+                            display: 'none',
+                          },
+                          scrollbarWidth: 'none', // Firefox
+                          msOverflowStyle: 'none', // IE and Edge
+                          overflow: 'auto',
+                          '& .MuiMenuItem-root': {
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            minHeight: '32px',
+                            padding: '6px 12px',
+                            '&:hover': {
+                              backgroundColor: '#4b5563',
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: '#eab308',
+                              color: 'black',
+                              '&:hover': {
+                                backgroundColor: '#eabb2eff',
+                              },
+                            },
+                          },
+                          // 確保選單內容也隱藏滾動條
+                          '& .MuiMenu-list': {
+                            '&::-webkit-scrollbar': {
+                              display: 'none',
+                            },
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                          },
+                        },
+                      },
+                      anchorOrigin: {
+                        vertical: 'bottom',
+                        horizontal: 'left',
+                      },
+                      transformOrigin: {
+                        vertical: 'top',
+                        horizontal: 'left',
+                      },
+                      getContentAnchorEl: null,
+                    }}
+                  >
+                    <MenuItem value={5}>5 / 頁</MenuItem>
+                    <MenuItem value={10}>10 / 頁</MenuItem>
+                    <MenuItem value={15}>15 / 頁</MenuItem>
+                    <MenuItem value={20}>20 / 頁</MenuItem>
+                    <MenuItem value={25}>25 / 頁</MenuItem>
+                    <MenuItem value={30}>30 / 頁</MenuItem>
+                  </Select>
+                </FormControl>
+              </div>
             </div>
           </div>
           
@@ -269,6 +448,8 @@ const ImageViewer = () => {
                   <span> (第 {currentPage} 頁，共 {totalPages} 頁)</span>
                 )}
               </span>
+              <span className="hidden sm:inline"> • </span>
+              <span className="block sm:inline">每頁: {itemsPerPage} 張</span>
               <span className="hidden sm:inline"> • </span>
               <span className="block sm:inline">排序: {sortOrder === 'newest' ? '最新優先' : '最舊優先'}</span>
               <span className="hidden sm:inline"> • </span>
@@ -305,7 +486,7 @@ const ImageViewer = () => {
             <ImageIcon className="w-16 h-16 text-slate-500 mx-auto mb-4" />
             <div className="text-slate-400 text-lg font-medium mb-2">沒有找到圖片</div>
             <div className="text-slate-500 text-sm mb-4">
-              尚未有任何警報圖片，或圖片檔案不存在
+              尚未有任何警報圖片或圖片檔案不存在
             </div>
             <button
               onClick={refreshImages}
@@ -318,9 +499,19 @@ const ImageViewer = () => {
 
         {!loading && !error && images.length > 0 && (
           <>
+            {/* Page Loading Indicator */}
+            {pageLoading && (
+              <div className="bg-slate-800/50 border border-slate-600/50 rounded-xl p-4 mb-4 text-center">
+                <div className="flex items-center justify-center gap-3 text-amber-400">
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <span>載入第 {currentPage} 頁圖片中...</span>
+                </div>
+              </div>
+            )}
+
             <div className={
               viewMode === 'grid' 
-                ? 'grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4'
+                ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3'
                 : 'space-y-3 sm:space-y-4'
             }>
               {images.map((image, index) => (
@@ -342,23 +533,79 @@ const ImageViewer = () => {
 
                 {/* Pagination Controls */}
                 <div className="flex items-center gap-1 sm:gap-2">
-                  <button
-                    onClick={() => goToPage(1)}
-                    disabled={currentPage === 1}
-                    className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-600/50 hover:bg-slate-500/70 disabled:bg-slate-700/30 disabled:text-slate-500 rounded transition-colors flex items-center justify-center"
-                    title="第一頁"
-                  >
-                    <ChevronsLeft className="w-4 h-4" />
-                  </button>
+                  <Tooltip title="第一頁">
+                    <span>
+                      <IconButton
+                        onClick={() => goToPage(1)}
+                        disabled={currentPage === 1}
+                        sx={{
+                          width: '32px',
+                          height: '32px',
+                          minWidth: '32px',
+                          minHeight: '32px',
+                          '@media (min-width: 640px)': {
+                            width: '36px',
+                            height: '36px',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                          },
+                          bgcolor: 'rgba(71, 85, 105, 0.5)',
+                          color: 'white',
+                          borderRadius: '6px',
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          '&:hover': {
+                            bgcolor: 'rgba(71, 85, 105, 0.7)',
+                          },
+                          '&:disabled': {
+                            bgcolor: 'rgba(51, 65, 85, 0.3)',
+                            color: 'rgba(148, 163, 184, 0.5)',
+                          },
+                        }}
+                      >
+                        <ChevronsLeft style={{ width: '16px', height: '16px' }} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
 
-                  <button
-                    onClick={goToPrevPage}
-                    disabled={currentPage === 1}
-                    className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-600/50 hover:bg-slate-500/70 disabled:bg-slate-700/30 disabled:text-slate-500 rounded transition-colors flex items-center justify-center"
-                    title="上一頁"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
+                  <Tooltip title="上一頁">
+                    <span>
+                      <IconButton
+                        onClick={goToPrevPage}
+                        disabled={currentPage === 1}
+                        sx={{
+                          width: '32px',
+                          height: '32px',
+                          minWidth: '32px',
+                          minHeight: '32px',
+                          '@media (min-width: 640px)': {
+                            width: '36px',
+                            height: '36px',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                          },
+                          bgcolor: 'rgba(71, 85, 105, 0.5)',
+                          color: 'white',
+                          borderRadius: '6px',
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          '&:hover': {
+                            bgcolor: 'rgba(71, 85, 105, 0.7)',
+                          },
+                          '&:disabled': {
+                            bgcolor: 'rgba(51, 65, 85, 0.3)',
+                            color: 'rgba(148, 163, 184, 0.5)',
+                          },
+                        }}
+                      >
+                        <ChevronLeft style={{ width: '16px', height: '16px' }} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
 
                   {/* Page Numbers */}
                   <div className="flex items-center gap-1">
@@ -374,39 +621,117 @@ const ImageViewer = () => {
                         pageNum = currentPage - 2 + i;
                       }
 
+                      const isActive = currentPage === pageNum;
+
                       return (
-                        <button
+                        <IconButton
                           key={pageNum}
                           onClick={() => goToPage(pageNum)}
-                          className={`w-8 h-8 sm:w-9 sm:h-9 rounded transition-colors flex items-center justify-center text-sm font-medium ${
-                            currentPage === pageNum
-                              ? 'bg-amber-500/30 text-amber-400 border border-amber-500/50'
-                              : 'bg-slate-600/50 hover:bg-slate-500/70 text-slate-300'
-                          }`}
+                          sx={{
+                            width: '32px',
+                            height: '32px',
+                            minWidth: '32px',
+                            minHeight: '32px',
+                            '@media (min-width: 640px)': {
+                              width: '36px',
+                              height: '36px',
+                              minWidth: '36px',
+                              minHeight: '36px',
+                            },
+                            bgcolor: isActive ? 'rgba(245, 158, 11, 0.3)' : 'rgba(71, 85, 105, 0.5)',
+                            color: isActive ? '#fbbf24' : '#cbd5e1',
+                            borderRadius: '6px',
+                            border: isActive ? '1px solid rgba(245, 158, 11, 0.5)' : 'none',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            '&:hover': {
+                              bgcolor: isActive ? 'rgba(245, 158, 11, 0.4)' : 'rgba(71, 85, 105, 0.7)',
+                            },
+                          }}
                         >
                           {pageNum}
-                        </button>
+                        </IconButton>
                       );
                     })}
                   </div>
 
-                  <button
-                    onClick={goToNextPage}
-                    disabled={currentPage === totalPages}
-                    className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-600/50 hover:bg-slate-500/70 disabled:bg-slate-700/30 disabled:text-slate-500 rounded transition-colors flex items-center justify-center"
-                    title="下一頁"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                  <Tooltip title="下一頁">
+                    <span>
+                      <IconButton
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                        sx={{
+                          width: '32px',
+                          height: '32px',
+                          minWidth: '32px',
+                          minHeight: '32px',
+                          '@media (min-width: 640px)': {
+                            width: '36px',
+                            height: '36px',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                          },
+                          bgcolor: 'rgba(71, 85, 105, 0.5)',
+                          color: 'white',
+                          borderRadius: '6px',
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          '&:hover': {
+                            bgcolor: 'rgba(71, 85, 105, 0.7)',
+                          },
+                          '&:disabled': {
+                            bgcolor: 'rgba(51, 65, 85, 0.3)',
+                            color: 'rgba(148, 163, 184, 0.5)',
+                          },
+                        }}
+                      >
+                        <ChevronRight style={{ width: '16px', height: '16px' }} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
 
-                  <button
-                    onClick={() => goToPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-600/50 hover:bg-slate-500/70 disabled:bg-slate-700/30 disabled:text-slate-500 rounded transition-colors flex items-center justify-center"
-                    title="最後一頁"
-                  >
-                    <ChevronsRight className="w-4 h-4" />
-                  </button>
+                  <Tooltip title="最後一頁">
+                    <span>
+                      <IconButton
+                        onClick={() => goToPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                        sx={{
+                          width: '32px',
+                          height: '32px',
+                          minWidth: '32px',
+                          minHeight: '32px',
+                          '@media (min-width: 640px)': {
+                            width: '36px',
+                            height: '36px',
+                            minWidth: '36px',
+                            minHeight: '36px',
+                          },
+                          bgcolor: 'rgba(71, 85, 105, 0.5)',
+                          color: 'white',
+                          borderRadius: '6px',
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          '&:hover': {
+                            bgcolor: 'rgba(71, 85, 105, 0.7)',
+                          },
+                          '&:disabled': {
+                            bgcolor: 'rgba(51, 65, 85, 0.3)',
+                            color: 'rgba(148, 163, 184, 0.5)',
+                          },
+                        }}
+                      >
+                        <ChevronsRight style={{ width: '16px', height: '16px' }} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </div>
               </div>
             )}

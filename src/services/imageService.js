@@ -46,7 +46,7 @@ class ImageApiService {
   }
 
   /**
-   * 獲取圖片列表元數據 (不包含 base64 數據，用於分頁)
+   * 獲取圖片列表元數據 (只返回檔案名稱列表)
    */
   async getImageMetadata() {
     try {
@@ -62,18 +62,72 @@ class ImageApiService {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const metadata = await response.json();
-        console.log('✓ Image metadata loaded successfully:', metadata.length);
+        const filenames = await response.json();
+        console.log('✓ Image metadata loaded successfully:', filenames.length);
+        
+        // 將檔案名稱轉換為包含基本資訊的物件
+        const metadata = filenames.map(filename => ({
+          filename,
+          timestamp: this.extractTimeFromFilename(filename),
+          type: this.getTypeFromFilename(filename),
+          // 其他資訊等需要時再載入
+        }));
+        
         return { success: true, images: this.sortImagesByDate(metadata) };
       } else {
-        // Fallback to getAllImages if metadata endpoint doesn't exist
-        console.warn(`⚠ Metadata endpoint not available, falling back to full images`);
-        return await this.getAllImages();
+        console.warn(`⚠ Failed to load metadata: ${response.status}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
       }
     } catch (error) {
       console.error('✗ Failed to load image metadata:', error.message);
-      // Fallback to getAllImages
-      return await this.getAllImages();
+      let errorMessage = error.message;
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = `Cannot reach server at ${this.baseHost}`;
+      }
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * 批次獲取圖片數據
+   */
+  async getBatchImages(filenames) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout * 2); // 批次載入給更多時間
+
+      // 使用 POST 方法發送 JSON body (更標準的做法)
+      const response = await fetch(`${this.baseHost}/storage/image/batch`, {
+        signal: controller.signal,
+        method: 'POST', // 改用 POST
+        headers: { 
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ filenames })
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const images = await response.json();
+        console.log('✓ Batch images loaded successfully:', images.length);
+        return { success: true, images };
+      } else {
+        console.warn(`⚠ Failed to load batch images: ${response.status}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+    } catch (error) {
+      console.error('✗ Failed to load batch images:', error.message);
+      let errorMessage = error.message;
+      if (error.name === 'AbortError') {
+        errorMessage = 'Batch load timed out';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = `Cannot reach server at ${this.baseHost}`;
+      }
+      return { success: false, error: errorMessage };
     }
   }
 
@@ -130,6 +184,21 @@ class ImageApiService {
       return new Date(`${date}T${formattedTime}`);
     }
     return new Date(0); // fallback for invalid format
+  }
+
+  /**
+   * 從檔名中提取檔案類型
+   */
+  getTypeFromFilename(filename) {
+    const extension = filename.split('.').pop().toLowerCase();
+    const typeMap = {
+      'jpg': 'jpeg',
+      'jpeg': 'jpeg',
+      'png': 'png',
+      'gif': 'gif',
+      'bmp': 'bmp'
+    };
+    return typeMap[extension] || 'jpeg';
   }
 
   /**

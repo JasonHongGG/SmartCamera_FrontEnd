@@ -72,6 +72,8 @@ export const useMotionDetection = (detectionHost) => {
   }, [state.enabled, executeAsync]);
 
   const setSensitivity = useCallback(async (sensitivity, customValues = null) => {
+    console.log('setSensitivity called with:', { sensitivity, customValues });
+    
     let motionThreshold = 10000;
     let alarmThreshold = 20;
     
@@ -92,15 +94,22 @@ export const useMotionDetection = (detectionHost) => {
       }
     }
 
+    console.log('Calculated thresholds:', { motionThreshold, alarmThreshold });
+
     try {
       const result = await executeAsync(() => 
         apiService.setMotionSensitivity(motionThreshold, alarmThreshold)
       );
       
+      console.log('API result:', result);
+      
       if (result.success) {
+        const newSensitivity = customValues ? 'custom' : sensitivity;
+        console.log('Updating state with sensitivity:', newSensitivity);
+        
         setState(prev => ({
           ...prev,
-          sensitivity: customValues ? 'custom' : sensitivity
+          sensitivity: newSensitivity
         }));
         
         if (customValues) {
