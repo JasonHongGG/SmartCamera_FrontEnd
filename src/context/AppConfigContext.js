@@ -14,7 +14,7 @@ export const AppConfigProvider = ({ children }) => {
   const [config, setConfig] = useState({
     cameraHost: "http://140.116.6.62:3000",
     detectionHost: "/api",
-    streamHost: "http://140.116.6.62:3001"
+    streamHost: "/api"
   });
 
   const updateConfig = (newConfig) => {

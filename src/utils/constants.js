@@ -32,7 +32,7 @@ export const API_ENDPOINTS = {
 export const DEFAULT_CONFIG = {
   CAMERA_HOST: "http://140.116.6.62:3000",
   DETECTION_HOST: "/api",
-  STREAM_HOST: "http://140.116.6.62:3001"
+  STREAM_HOST: "/api"
 };
 
 // 敏感度預設值
