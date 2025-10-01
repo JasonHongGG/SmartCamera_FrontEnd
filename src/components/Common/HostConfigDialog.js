@@ -24,10 +24,6 @@ const HostConfigDialog = ({
     onClose();
   };
 
-  const handleReset = () => {
-    setTempConfig(config);
-  };
-
   React.useEffect(() => {
     if (open) {
       setTempConfig(config);
@@ -42,8 +38,8 @@ const HostConfigDialog = ({
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#1e293b',
-          border: '1px solid rgba(148, 163, 184, 0.2)',
+          background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)',
+          border: '1px solid rgba(148, 163, 184, 0.3)',
           borderRadius: { xs: '12px', sm: '16px' },
           margin: { xs: 2, sm: 3 },
           maxWidth: { xs: 'calc(100vw - 32px)', sm: '600px', md: '700px' },
@@ -58,7 +54,9 @@ const HostConfigDialog = ({
           color: 'white', 
           pb: { xs: 1, sm: 2 },
           px: { xs: 3, sm: 4 },
-          pt: { xs: 3, sm: 4 }
+          pt: { xs: 3, sm: 4 },
+          background: 'linear-gradient(135deg, rgba(71, 85, 105, 0.5) 0%, rgba(51, 65, 85, 0.6) 100%)',
+          borderBottom: '1px solid rgba(251, 191, 36, 0.25)'
         }}
       >
         <Box display="flex" alignItems="center" gap={{ xs: 1.5, sm: 2 }}>
@@ -81,6 +79,7 @@ const HostConfigDialog = ({
           color: 'white',
           px: { xs: 3, sm: 4 },
           py: { xs: 2, sm: 3 },
+          background: 'linear-gradient(180deg, rgba(51, 65, 85, 0.3) 0%, rgba(30, 41, 59, 0.4) 100%)',
           '&:first-of-type': {
             paddingTop: { xs: 2, sm: 3 }
           }
@@ -98,9 +97,15 @@ const HostConfigDialog = ({
             variant="outlined"
             placeholder="e.g., http://192.168.1.100:3000"
             sx={{
-              '& .MuiInputLabel-root': { color: '#cbd5e1' },
+              '& .MuiInputLabel-root': { 
+                color: '#cbd5e1',
+                '&.Mui-focused': {
+                  color: '#fbbf24'
+                }
+              },
               '& .MuiOutlinedInput-root': {
                 color: 'white',
+                bgcolor: 'rgba(30, 41, 59, 0.4)',
                 '& fieldset': { borderColor: 'rgba(148, 163, 184, 0.3)' },
                 '&:hover fieldset': { borderColor: 'rgba(251, 191, 36, 0.5)' },
                 '&.Mui-focused fieldset': { borderColor: '#eab308' }
@@ -119,9 +124,15 @@ const HostConfigDialog = ({
             variant="outlined"
             placeholder="e.g., http://localhost:5000"
             sx={{
-              '& .MuiInputLabel-root': { color: '#cbd5e1' },
+              '& .MuiInputLabel-root': { 
+                color: '#cbd5e1',
+                '&.Mui-focused': {
+                  color: '#fbbf24'
+                }
+              },
               '& .MuiOutlinedInput-root': {
                 color: 'white',
+                bgcolor: 'rgba(30, 41, 59, 0.4)',
                 '& fieldset': { borderColor: 'rgba(148, 163, 184, 0.3)' },
                 '&:hover fieldset': { borderColor: 'rgba(251, 191, 36, 0.5)' },
                 '&.Mui-focused fieldset': { borderColor: '#eab308' }
@@ -140,9 +151,15 @@ const HostConfigDialog = ({
             variant="outlined"
             placeholder="e.g., http://192.168.1.100:3001"
             sx={{
-              '& .MuiInputLabel-root': { color: '#cbd5e1' },
+              '& .MuiInputLabel-root': { 
+                color: '#cbd5e1',
+                '&.Mui-focused': {
+                  color: '#fbbf24'
+                }
+              },
               '& .MuiOutlinedInput-root': {
                 color: 'white',
+                bgcolor: 'rgba(30, 41, 59, 0.4)',
                 '& fieldset': { borderColor: 'rgba(148, 163, 184, 0.3)' },
                 '&:hover fieldset': { borderColor: 'rgba(251, 191, 36, 0.5)' },
                 '&.Mui-focused fieldset': { borderColor: '#eab308' }
@@ -156,33 +173,16 @@ const HostConfigDialog = ({
         sx={{ 
           px: { xs: 3, sm: 4 }, 
           py: { xs: 2.5, sm: 3 },
-          gap: { xs: 0.1, sm: 0.2 },
-          flexDirection: { xs: 'column-reverse', sm: 'row' },
+          gap: { xs: 1.5, sm: 1 },
+          display: 'flex',
+          flexDirection: 'row',
           justifyContent: 'flex-end',
-          borderTop: '1px solid rgba(148, 163, 184, 0.1)',
-          mt: 1
+          background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.4) 0%, rgba(30, 41, 59, 0.5) 100%)',
+          borderTop: '1px solid rgba(251, 191, 36, 0.25)',
+          mt: 0
         }}
       >
-        <Button 
-          onClick={handleReset}
-          variant="outlined"
-          size="small"
-          sx={{
-            color: '#94a3b8',
-            borderColor: 'rgba(148, 163, 184, 0.3)',
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-            px: { xs: 2, sm: 2.5 },
-            py: { xs: 0.5, sm: 0.75 },
-            minWidth: { xs: '100%', sm: '70px' },
-            height: { xs: 'auto', sm: '36px' },
-            '&:hover': {
-              borderColor: 'rgba(148, 163, 184, 0.5)',
-              bgcolor: 'rgba(148, 163, 184, 0.1)'
-            }
-          }}
-        >
-          Reset
-        </Button>
+        
         <Button 
           onClick={onClose}
           variant="outlined"
@@ -190,11 +190,12 @@ const HostConfigDialog = ({
           sx={{
             color: '#ef4444',
             borderColor: 'rgba(239, 68, 68, 0.3)',
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            fontSize: { xs: '0.875rem', sm: '0.875rem' },
             px: { xs: 2, sm: 2.5 },
-            py: { xs: 0.5, sm: 0.75 },
-            minWidth: { xs: '100%', sm: '70px' },
-            height: { xs: 'auto', sm: '36px' },
+            py: { xs: 1, sm: 0.75 },
+            flex: { xs: 1, sm: 'none' },
+            minWidth: { xs: '0', sm: '80px' },
+            height: { xs: '40px', sm: '36px' },
             '&:hover': {
               borderColor: 'rgba(239, 68, 68, 0.5)',
               bgcolor: 'rgba(239, 68, 68, 0.1)'
@@ -211,11 +212,12 @@ const HostConfigDialog = ({
             bgcolor: '#eab308',
             color: 'black',
             fontWeight: 'bold',
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            fontSize: { xs: '0.875rem', sm: '0.875rem' },
             px: { xs: 2, sm: 2.5 },
-            py: { xs: 0.5, sm: 0.75 },
-            minWidth: { xs: '100%', sm: '70px' },
-            height: { xs: 'auto', sm: '36px' },
+            py: { xs: 1, sm: 0.75 },
+            flex: { xs: 1, sm: 'none' },
+            minWidth: { xs: '0', sm: '80px' },
+            height: { xs: '40px', sm: '36px' },
             '&:hover': {
               bgcolor: '#d97706'
             }

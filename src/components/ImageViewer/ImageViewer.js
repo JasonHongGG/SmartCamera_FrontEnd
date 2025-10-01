@@ -150,7 +150,10 @@ const ImageViewer = () => {
           className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
           onClick={() => handleImageClick(image)}
         />
-        <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
+        <div 
+          className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors duration-200 flex items-center justify-center opacity-0 hover:opacity-100 cursor-pointer"
+          onClick={() => handleImageClick(image)}
+        >
           <Eye className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
         </div>
       </div>
@@ -741,24 +744,26 @@ const ImageViewer = () => {
         {/* Fullscreen Modal */}
         {fullscreenImage && (
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4">
-            <div className="relative max-w-7xl max-h-full w-full">
-              <button
-                onClick={() => setFullscreenImage(null)}
-                className="absolute top-2 sm:top-4 right-2 sm:right-4 p-2 sm:p-3 bg-black/60 hover:bg-black/80 rounded-full transition-colors z-20 backdrop-blur-sm border border-white/20"
-              >
-                <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </button>
-              
-              <LazyImage
-                image={fullscreenImage}
-                alt={fullscreenImage.filename}
-                className="max-w-full max-h-full object-contain rounded-lg mx-auto block"
-              />
-              
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 sm:p-4 rounded-b-lg">
-                <div className="text-white font-medium text-sm sm:text-base">{formatDateTime(fullscreenImage.filename)}</div>
-                <div className="text-slate-300 text-xs sm:text-sm mt-1">
-                  {fullscreenImage.image_size} • {fullscreenImage.file_size}
+            <div className="relative max-w-full max-h-full flex items-center justify-center">
+              <div className="relative inline-block">
+                <LazyImage
+                  image={fullscreenImage}
+                  alt={fullscreenImage.filename}
+                  className="max-w-full max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
+                />
+                
+                <button
+                  onClick={() => setFullscreenImage(null)}
+                  className="absolute top-2 sm:top-4 right-2 sm:right-4 w-8 h-8 sm:w-10 sm:h-10 min-w-[2rem] min-h-[2rem] sm:min-w-[2.5rem] sm:min-h-[2.5rem] bg-black/30 hover:bg-black/40 rounded-full transition-colors backdrop-blur-sm border border-white/20 flex items-center justify-center flex-shrink-0"
+                >
+                  <X className="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" />
+                </button>
+                
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 sm:p-4 rounded-b-lg">
+                  <div className="text-white font-medium text-sm sm:text-base">{formatDateTime(fullscreenImage.filename)}</div>
+                  <div className="text-slate-300 text-xs sm:text-sm mt-1">
+                    {fullscreenImage.image_size} • {fullscreenImage.file_size}
+                  </div>
                 </div>
               </div>
             </div>
