@@ -201,6 +201,50 @@ class DetectionApiService {
   }
 
   /**
+   * 切換 Pipeline 檢測
+   */
+  async togglePipelineDetection(enabled) {
+    try {
+      const response = await fetch(`${this.baseHost}/detection/pipeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      });
+      
+      if (response.ok) {
+        return { success: true, enabled };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Failed to toggle pipeline detection:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 獲取 Pipeline 檢測資訊
+   */
+  async getPipelineInfo() {
+    try {
+      const response = await fetch(`${this.baseHost}/pipeline/info`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return { success: true, data };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error fetching pipeline info:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * 更新基礎主機地址
    */
   updateBaseHost(newHost) {

@@ -31,7 +31,7 @@ export const API_ENDPOINTS = {
 // 預設配置
 export const DEFAULT_CONFIG = {
   CAMERA_HOST: "http://140.116.6.62:3000",
-  DETECTION_HOST: "http://localhost:5000",
+  DETECTION_HOST: "/api",
   STREAM_HOST: "http://140.116.6.62:3001"
 };
 

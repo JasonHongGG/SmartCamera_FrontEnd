@@ -2,6 +2,7 @@ import React from 'react';
 import MotionDetection from './MotionDetection';
 import FaceDetection from './FaceDetection';
 import CrosslineDetection from './CrosslineDetection';
+import PipelineDetection from './PipelineDetection';
 
 const DetectionInterface = () => {
   return (
@@ -17,6 +18,7 @@ const DetectionInterface = () => {
           <MotionDetection />
           <FaceDetection />
           <CrosslineDetection />
+          <PipelineDetection />
         </div>
       </div>
     </div>

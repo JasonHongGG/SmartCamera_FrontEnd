@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState, useCallback, useRef } from 'react';
 import { usePolling, useAsyncOperation } from './commonHooks';
-import DetectionApiService from '../services/detectionApi';
+import DetectionApiService from '../services/detectionService';
 
 /**
  * 運動檢測 Hook
@@ -387,5 +387,87 @@ export const useCrosslineDetection = (detectionHost) => {
     syncLinesToServer,
     addVerticalLine,
     clearLines
+  };
+};
+
+/**
+ * Pipeline 檢測 Hook
+ */
+export const usePipelineDetection = (detectionHost) => {
+  const apiService = useRef(new DetectionApiService(detectionHost)).current;
+  const { execute: executeAsync } = useAsyncOperation();
+  
+  const [state, setState] = useState({
+    enabled: false,
+    streaming: false,
+    status: 'Inactive',
+    personCount: 0,
+    personNames: "",
+    lastDetection: null
+  });
+
+  // API 輪詢
+  const { data: pipelineData } = usePolling(
+    () => apiService.getPipelineInfo(),
+    1000,
+    state.enabled
+  );
+
+  // 更新狀態當收到新數據時
+  React.useEffect(() => {
+    if (pipelineData) {
+      setState(prev => {
+        const hasPersonCountChange = prev.personCount !== (pipelineData.personCount || 0);
+        const hasPersonNamesChange = prev.personNames !== (pipelineData.personNames || prev.personNames);
+        
+        if (!hasPersonCountChange && !hasPersonNamesChange) return prev;
+        
+        return {
+          ...prev,
+          personCount: pipelineData.personCount || 0,
+          personNames: pipelineData.personNames || prev.personNames,
+          lastDetection: pipelineData.personCount > 0 ? pipelineData.lastDetection : prev.lastDetection,
+          status: prev.enabled ? 
+            (pipelineData.personCount > 0 ? `Active - ${pipelineData.personCount} Person(s) Detected` : 'Active - Scanning') : 
+            'Inactive'
+        };
+      });
+    }
+  }, [pipelineData]);
+
+  const toggleDetection = useCallback(async () => {
+    const newEnabled = !state.enabled;
+    setState(prev => ({
+      ...prev,
+      enabled: newEnabled,
+      status: newEnabled ? 'Initializing...' : 'Inactive',
+      streaming: newEnabled,
+      personCount: newEnabled ? prev.personCount : 0
+    }));
+
+    try {
+      const result = await executeAsync(() => apiService.togglePipelineDetection(newEnabled));
+      if (!result.success) {
+        // 回滾狀態
+        setState(prev => ({
+          ...prev,
+          enabled: !newEnabled,
+          status: !newEnabled ? 'Active - Scanning' : 'Inactive',
+          streaming: !newEnabled
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to toggle pipeline detection:', error);
+    }
+  }, [state.enabled, executeAsync]);
+
+  // 更新 API 服務的主機地址
+  React.useEffect(() => {
+    apiService.updateBaseHost(detectionHost);
+  }, [detectionHost]);
+
+  return {
+    state,
+    toggleDetection
   };
 };

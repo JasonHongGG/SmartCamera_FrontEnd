@@ -744,9 +744,9 @@ const ImageViewer = () => {
             <div className="relative max-w-7xl max-h-full w-full">
               <button
                 onClick={() => setFullscreenImage(null)}
-                className="absolute -top-10 sm:-top-12 right-0 p-1.5 sm:p-2 bg-slate-800/80 hover:bg-slate-700/80 rounded-lg transition-colors z-10"
+                className="absolute top-2 sm:top-4 right-2 sm:right-4 p-2 sm:p-3 bg-black/60 hover:bg-black/80 rounded-full transition-colors z-20 backdrop-blur-sm border border-white/20"
               >
-                <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </button>
               
               <LazyImage
