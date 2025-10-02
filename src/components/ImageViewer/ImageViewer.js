@@ -82,15 +82,52 @@ const ImageViewer = () => {
     document.body.removeChild(link);
   };
 
-  // Lazy loading image component
+  // Lazy loading image component with Intersection Observer
   const LazyImage = ({ image, alt, className, onClick }) => {
     const [imageData, setImageData] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
+    const imgRef = React.useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
 
+    // Intersection Observer for lazy loading
     useEffect(() => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              setIsVisible(true);
+              observer.disconnect(); // 只觸發一次
+            }
+          });
+        },
+        {
+          rootMargin: '200px', // 提前 200px 開始載入
+          threshold: 0.01
+        }
+      );
+
+      if (imgRef.current) {
+        observer.observe(imgRef.current);
+      }
+
+      return () => observer.disconnect();
+    }, []);
+
+    // 當圖片進入視圖或已經有資料時才載入
+    useEffect(() => {
+      if (!isVisible && !getImageDataUrl(image)) return;
+
       const loadImage = async () => {
         try {
+          // 先檢查是否已經有快取資料
+          const cachedUrl = getImageDataUrl(image);
+          if (cachedUrl) {
+            setImageData(cachedUrl);
+            setIsLoading(false);
+            return;
+          }
+
           setIsLoading(true);
           setHasError(false);
           await ensureImageLoaded(image);
@@ -105,11 +142,11 @@ const ImageViewer = () => {
       };
 
       loadImage();
-    }, [image]);
+    }, [image, isVisible]);
 
     if (hasError) {
       return (
-        <div className={`${className} bg-slate-700/50 flex items-center justify-center`}>
+        <div ref={imgRef} className={`${className} bg-slate-700/50 flex items-center justify-center`}>
           <div className="text-slate-400 text-xs text-center">
             <ImageIcon className="w-6 h-6 mx-auto mb-1" />
             載入失敗
@@ -120,7 +157,7 @@ const ImageViewer = () => {
 
     if (isLoading || !imageData) {
       return (
-        <div className={`${className} bg-slate-700/50 flex items-center justify-center`}>
+        <div ref={imgRef} className={`${className} bg-slate-700/50 flex items-center justify-center`}>
           <div className="text-slate-400 text-xs text-center">
             <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1" />
             載入中...
@@ -131,10 +168,12 @@ const ImageViewer = () => {
 
     return (
       <img
+        ref={imgRef}
         src={imageData}
         alt={alt}
         className={className}
         onClick={onClick}
+        loading="lazy"
       />
     );
   };

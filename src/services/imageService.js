@@ -95,8 +95,10 @@ class ImageApiService {
    */
   async getBatchImages(filenames) {
     try {
+      // 根據圖片數量動態調整 timeout
+      const timeoutDuration = Math.max(this.timeout, filenames.length * 500);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout * 2); // 批次載入給更多時間
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
       // 使用 POST 方法發送 JSON body (更標準的做法)
       const response = await fetch(`${this.baseHost}/storage/image/batch`, {
@@ -113,7 +115,7 @@ class ImageApiService {
 
       if (response.ok) {
         const images = await response.json();
-        console.log('✓ Batch images loaded successfully:', images.length);
+        console.log(`✓ Batch loaded ${images.length}/${filenames.length} images`);
         return { success: true, images };
       } else {
         console.warn(`⚠ Failed to load batch images: ${response.status}`);

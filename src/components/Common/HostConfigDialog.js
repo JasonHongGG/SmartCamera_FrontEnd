@@ -38,7 +38,7 @@ const HostConfigDialog = ({
       fullWidth
       PaperProps={{
         sx: {
-          background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)',
+          background: 'linear-gradient(135deg, #334155 0%, #253144ff 100%)',
           border: '1px solid rgba(148, 163, 184, 0.3)',
           borderRadius: { xs: '12px', sm: '16px' },
           margin: { xs: 2, sm: 3 },
@@ -55,7 +55,7 @@ const HostConfigDialog = ({
           pb: { xs: 1, sm: 2 },
           px: { xs: 3, sm: 4 },
           pt: { xs: 3, sm: 4 },
-          background: 'linear-gradient(135deg, rgba(71, 85, 105, 0.5) 0%, rgba(51, 65, 85, 0.6) 100%)',
+          background: 'linear-gradient(135deg, rgba(71, 85, 105, 0.2) 0%, rgba(51, 65, 85, 0.4) 100%)',
           borderBottom: '1px solid rgba(251, 191, 36, 0.25)'
         }}
       >
@@ -79,7 +79,7 @@ const HostConfigDialog = ({
           color: 'white',
           px: { xs: 3, sm: 4 },
           py: { xs: 2, sm: 3 },
-          background: 'linear-gradient(180deg, rgba(51, 65, 85, 0.3) 0%, rgba(30, 41, 59, 0.4) 100%)',
+          background: 'linear-gradient(180deg, rgba(51, 65, 85, 0.1) 0%, rgba(30, 41, 59, 0.3) 100%)',
           '&:first-of-type': {
             paddingTop: { xs: 2, sm: 3 }
           }
@@ -105,7 +105,7 @@ const HostConfigDialog = ({
               },
               '& .MuiOutlinedInput-root': {
                 color: 'white',
-                bgcolor: 'rgba(30, 41, 59, 0.4)',
+                bgcolor: 'rgba(30, 41, 59, 0.2)',
                 '& fieldset': { borderColor: 'rgba(148, 163, 184, 0.3)' },
                 '&:hover fieldset': { borderColor: 'rgba(251, 191, 36, 0.5)' },
                 '&.Mui-focused fieldset': { borderColor: '#eab308' }
@@ -132,7 +132,7 @@ const HostConfigDialog = ({
               },
               '& .MuiOutlinedInput-root': {
                 color: 'white',
-                bgcolor: 'rgba(30, 41, 59, 0.4)',
+                bgcolor: 'rgba(30, 41, 59, 0.2)',
                 '& fieldset': { borderColor: 'rgba(148, 163, 184, 0.3)' },
                 '&:hover fieldset': { borderColor: 'rgba(251, 191, 36, 0.5)' },
                 '&.Mui-focused fieldset': { borderColor: '#eab308' }
@@ -159,7 +159,7 @@ const HostConfigDialog = ({
               },
               '& .MuiOutlinedInput-root': {
                 color: 'white',
-                bgcolor: 'rgba(30, 41, 59, 0.4)',
+                bgcolor: 'rgba(30, 41, 59, 0.2)',
                 '& fieldset': { borderColor: 'rgba(148, 163, 184, 0.3)' },
                 '&:hover fieldset': { borderColor: 'rgba(251, 191, 36, 0.5)' },
                 '&.Mui-focused fieldset': { borderColor: '#eab308' }
@@ -177,7 +177,7 @@ const HostConfigDialog = ({
           display: 'flex',
           flexDirection: 'row',
           justifyContent: 'flex-end',
-          background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.4) 0%, rgba(30, 41, 59, 0.5) 100%)',
+          background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.2) 0%, rgba(30, 41, 59, 0.4) 100%)',
           borderTop: '1px solid rgba(251, 191, 36, 0.25)',
           mt: 0
         }}

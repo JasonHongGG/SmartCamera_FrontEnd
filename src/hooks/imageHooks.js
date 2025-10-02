@@ -14,6 +14,40 @@ export const useImageViewer = (detectionHost) => {
   const [itemsPerPage, setItemsPerPage] = useState(10); // 每頁顯示圖片數量
   const [totalPages, setTotalPages] = useState(0);
   const apiServiceRef = useRef(null);
+  const loadedImagesRef = useRef(loadedImages); // 使用 ref 追蹤最新的 loadedImages
+  const MAX_CACHE_SIZE = 50; // 最多快取 50 張圖片
+
+  // 同步 ref 與 state
+  useEffect(() => {
+    loadedImagesRef.current = loadedImages;
+  }, [loadedImages]);
+
+  // Helper: 限制 cache 大小，移除最舊的項目
+  const limitCacheSize = useCallback((cache, keysToKeep = []) => {
+    if (cache.size <= MAX_CACHE_SIZE) return cache;
+    
+    const newCache = new Map();
+    const entries = Array.from(cache.entries());
+    
+    // 優先保留要保留的 keys
+    keysToKeep.forEach(key => {
+      if (cache.has(key)) {
+        newCache.set(key, cache.get(key));
+      }
+    });
+    
+    // 然後從最新的開始保留到達到限制
+    const remainingSlots = MAX_CACHE_SIZE - newCache.size;
+    entries
+      .filter(([key]) => !keysToKeep.includes(key))
+      .slice(-remainingSlots)
+      .forEach(([key, value]) => {
+        newCache.set(key, value);
+      });
+    
+    console.log(`🗑️ Cache trimmed: ${cache.size} → ${newCache.size} items`);
+    return newCache;
+  }, [MAX_CACHE_SIZE]);
 
   // Initialize API service
   useEffect(() => {
@@ -42,30 +76,76 @@ export const useImageViewer = (detectionHost) => {
       const endIndex = startIndex + itemsPerPage;
       const pageImages = allImages.slice(startIndex, endIndex);
 
+      // 預載下一頁的圖片
+      const nextPageStartIndex = endIndex;
+      const nextPageEndIndex = nextPageStartIndex + itemsPerPage;
+      const nextPageImages = allImages.slice(nextPageStartIndex, nextPageEndIndex);
+
       // 檢查哪些圖片還沒有載入完整數據
       const imagesToLoad = pageImages
-        .filter(img => !loadedImages.has(img.filename))
+        .filter(img => !loadedImagesRef.current.has(img.filename))
+        .map(img => img.filename);
+
+      // 預載下一頁（但不阻塞當前頁）
+      const nextImagesToLoad = nextPageImages
+        .filter(img => !loadedImagesRef.current.has(img.filename))
         .map(img => img.filename);
 
       if (imagesToLoad.length > 0) {
         setPageLoading(true);
         
         try {
-          const result = await apiServiceRef.current.getBatchImages(imagesToLoad);
-          if (result.success) {
-            // 更新 loadedImages cache
-            const newLoadedImages = new Map(loadedImages);
-            result.images.forEach(image => {
-              newLoadedImages.set(image.filename, image);
-            });
-            setLoadedImages(newLoadedImages);
+          // 使用更小的批次大小來加快初始載入
+          const batchSize = 5;
+          const batches = [];
+          for (let i = 0; i < imagesToLoad.length; i += batchSize) {
+            batches.push(imagesToLoad.slice(i, i + batchSize));
+          }
 
-            // 合併元數據和圖片數據
-            const mergedImages = pageImages.map(metadata => {
-              const imageData = newLoadedImages.get(metadata.filename);
-              return imageData ? { ...metadata, ...imageData } : metadata;
+          // 並發載入多個批次
+          const results = await Promise.all(
+            batches.map(batch => apiServiceRef.current.getBatchImages(batch))
+          );
+
+          // 更新 loadedImages cache
+          setLoadedImages(prev => {
+            let newLoadedImages = new Map(prev);
+            results.forEach(result => {
+              if (result.success) {
+                result.images.forEach(image => {
+                  newLoadedImages.set(image.filename, image);
+                });
+              }
             });
-            setImages(mergedImages);
+            
+            // 限制 cache 大小，保留當前頁和下一頁的圖片
+            const keysToKeep = [...pageImages.map(img => img.filename), ...nextPageImages.map(img => img.filename)];
+            newLoadedImages = limitCacheSize(newLoadedImages, keysToKeep);
+            return newLoadedImages;
+          });
+
+          // 合併元數據和圖片數據 - 使用最新的 loadedImages
+          setImages(pageImages.map(metadata => {
+            const imageData = loadedImagesRef.current.get(metadata.filename) || results.find(r => r.success)?.images.find(img => img.filename === metadata.filename);
+            return imageData ? { ...metadata, ...imageData } : metadata;
+          }));
+
+          // 背景預載下一頁（不等待）
+          if (nextImagesToLoad.length > 0) {
+            apiServiceRef.current.getBatchImages(nextImagesToLoad).then(result => {
+              if (result.success) {
+                setLoadedImages(prev => {
+                  let updated = new Map(prev);
+                  result.images.forEach(image => {
+                    updated.set(image.filename, image);
+                  });
+                  // 限制 cache 大小
+                  const keysToKeep = [...pageImages.map(img => img.filename), ...nextPageImages.map(img => img.filename)];
+                  updated = limitCacheSize(updated, keysToKeep);
+                  return updated;
+                });
+              }
+            }).catch(err => console.log('Preload next page failed:', err));
           }
         } catch (error) {
           console.error('Failed to load page images:', error);
@@ -73,17 +153,38 @@ export const useImageViewer = (detectionHost) => {
           setPageLoading(false);
         }
       } else {
+        // 所有圖片都已載入，確保 pageLoading 為 false
+        setPageLoading(false);
+        
         // 所有圖片都已載入，直接合併數據
         const mergedImages = pageImages.map(metadata => {
-          const imageData = loadedImages.get(metadata.filename);
+          const imageData = loadedImagesRef.current.get(metadata.filename);
           return imageData ? { ...metadata, ...imageData } : metadata;
         });
         setImages(mergedImages);
+        
+        // 仍然預載下一頁
+        if (nextImagesToLoad.length > 0) {
+          apiServiceRef.current.getBatchImages(nextImagesToLoad).then(result => {
+            if (result.success) {
+              setLoadedImages(prev => {
+                let updated = new Map(prev);
+                result.images.forEach(image => {
+                  updated.set(image.filename, image);
+                });
+                // 限制 cache 大小
+                const keysToKeep = [...pageImages.map(img => img.filename), ...nextPageImages.map(img => img.filename)];
+                updated = limitCacheSize(updated, keysToKeep);
+                return updated;
+              });
+            }
+          }).catch(err => console.log('Preload next page failed:', err));
+        }
       }
     };
 
     loadCurrentPageImages();
-  }, [allImages, currentPage, itemsPerPage, loadedImages]);
+  }, [allImages, currentPage, itemsPerPage, limitCacheSize]); // 移除 loadedImages 依賴
 
   // Load all images metadata (without base64 data)
   const loadImages = useCallback(async () => {
