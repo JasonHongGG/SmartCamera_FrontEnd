@@ -92,30 +92,39 @@ class ImageApiService {
 
   /**
    * 批次獲取圖片數據
+   * @param {string[]} filenames - 圖片檔名陣列
+   * @param {number|null} width - 目標寬度，null 為原始大小
    */
-  async getBatchImages(filenames) {
+  async getBatchImages(filenames, width = null) {
     try {
       // 根據圖片數量動態調整 timeout
       const timeoutDuration = Math.max(this.timeout, filenames.length * 500);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
-      // 使用 POST 方法發送 JSON body (更標準的做法)
+      // 準備請求 body
+      const requestBody = { filenames };
+      if (width !== null) {
+        requestBody.width = width;
+      }
+
+      // 使用 POST 方法發送 JSON body
       const response = await fetch(`${this.baseHost}/storage/image/batch`, {
         signal: controller.signal,
-        method: 'POST', // 改用 POST
+        method: 'POST',
         headers: { 
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ filenames })
+        body: JSON.stringify(requestBody)
       });
 
       clearTimeout(timeoutId);
 
       if (response.ok) {
         const images = await response.json();
-        console.log(`✓ Batch loaded ${images.length}/${filenames.length} images`);
+        const sizeInfo = width ? ` (${width}px width)` : ' (original size)';
+        console.log(`✓ Batch loaded ${images.length}/${filenames.length} images${sizeInfo}`);
         return { success: true, images };
       } else {
         console.warn(`⚠ Failed to load batch images: ${response.status}`);
@@ -135,13 +144,21 @@ class ImageApiService {
 
   /**
    * 獲取單張圖片
+   * @param {string} filename - 圖片檔名
+   * @param {number|null} width - 目標寬度，null 為原始大小
    */
-  async getImage(filename) {
+  async getImage(filename, width = null) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-      const response = await fetch(`${this.baseHost}/storage/image/${filename}`, {
+      // 構建 URL，如果有 width 參數則加入 query string
+      let url = `${this.baseHost}/storage/image/${filename}`;
+      if (width !== null) {
+        url += `?width=${width}`;
+      }
+
+      const response = await fetch(url, {
         signal: controller.signal,
         method: 'GET',
         headers: { 'Accept': 'application/json' },
@@ -151,7 +168,8 @@ class ImageApiService {
 
       if (response.ok) {
         const imageData = await response.json();
-        console.log('✓ Image loaded successfully:', filename);
+        const sizeInfo = width ? ` (${width}px width)` : ' (original size)';
+        console.log(`✓ Image loaded successfully: ${filename}${sizeInfo}`);
         return { success: true, image: imageData };
       } else {
         console.warn(`⚠ Failed to load image ${filename}: ${response.status}`);

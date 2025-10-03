@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Image as ImageIcon, 
   Grid3X3, 
@@ -23,6 +23,7 @@ import { useAppConfig } from '../../context/AppConfigContext';
 const ImageViewer = () => {
   const { config } = useAppConfig();
   const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [fullscreenImageLoading, setFullscreenImageLoading] = useState(false);
   
   const {
     images,
@@ -67,15 +68,26 @@ const ImageViewer = () => {
 
   const handleImageClick = (image) => {
     setFullscreenImage(image);
+    // 預載完整尺寸圖片
+    setFullscreenImageLoading(true);
+    ensureImageLoaded(image, true).finally(() => {
+      setFullscreenImageLoading(false);
+    });
   };
 
   const handleFullscreen = (image) => {
     setFullscreenImage(image);
+    // 預載完整尺寸圖片
+    setFullscreenImageLoading(true);
+    ensureImageLoaded(image, true).finally(() => {
+      setFullscreenImageLoading(false);
+    });
   };
 
   const handleDownload = (image) => {
+    // 下載時使用完整尺寸
     const link = document.createElement('a');
-    link.href = getImageDataUrl(image);
+    link.href = getImageDataUrl(image, true) || getImageDataUrl(image, false); // fallback to preview if full not available
     link.download = image.filename;
     document.body.appendChild(link);
     link.click();
@@ -84,11 +96,14 @@ const ImageViewer = () => {
 
   // Lazy loading image component with Intersection Observer
   const LazyImage = ({ image, alt, className, onClick }) => {
-    const [imageData, setImageData] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
+    // 智能初始化：如果已經有快取資料，直接使用
+    const initialImageData = getImageDataUrl(image, false);
+    const [imageData, setImageData] = useState(initialImageData);
+    const [isLoading, setIsLoading] = useState(!initialImageData); // 如果有快取就不載入
     const [hasError, setHasError] = useState(false);
     const imgRef = React.useRef(null);
     const [isVisible, setIsVisible] = useState(false);
+    const [currentFilename, setCurrentFilename] = useState(initialImageData ? image.filename : '');
 
     // Intersection Observer for lazy loading
     useEffect(() => {
@@ -114,14 +129,28 @@ const ImageViewer = () => {
       return () => observer.disconnect();
     }, []);
 
-    // 當圖片進入視圖或已經有資料時才載入
+    // 當圖片進入視圖或檔名改變時才載入 (預覽尺寸)
     useEffect(() => {
-      if (!isVisible && !getImageDataUrl(image)) return;
+      // 如果圖片檔名沒有變化，不需要重新載入
+      if (currentFilename === image.filename) {
+        // 但要檢查是否有新的快取資料
+        const cachedUrl = getImageDataUrl(image, false);
+        if (cachedUrl && cachedUrl !== imageData) {
+          setImageData(cachedUrl);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // 新圖片或首次載入
+      if (!isVisible && !getImageDataUrl(image, false)) return;
 
       const loadImage = async () => {
         try {
-          // 先檢查是否已經有快取資料
-          const cachedUrl = getImageDataUrl(image);
+          setCurrentFilename(image.filename);
+          
+          // 先檢查是否已經有快取資料 (預覽尺寸)
+          const cachedUrl = getImageDataUrl(image, false);
           if (cachedUrl) {
             setImageData(cachedUrl);
             setIsLoading(false);
@@ -130,8 +159,8 @@ const ImageViewer = () => {
 
           setIsLoading(true);
           setHasError(false);
-          await ensureImageLoaded(image);
-          const dataUrl = getImageDataUrl(image);
+          await ensureImageLoaded(image, false); // 載入預覽尺寸
+          const dataUrl = getImageDataUrl(image, false);
           setImageData(dataUrl);
         } catch (error) {
           console.error('Failed to load image:', error);
@@ -142,7 +171,7 @@ const ImageViewer = () => {
       };
 
       loadImage();
-    }, [image, isVisible]);
+    }, [image.filename, isVisible, currentFilename]); // 只依賴 filename
 
     if (hasError) {
       return (
@@ -174,6 +203,58 @@ const ImageViewer = () => {
         className={className}
         onClick={onClick}
         loading="lazy"
+      />
+    );
+  };
+
+  // Full size image component for fullscreen modal
+  const FullSizeImage = ({ image, alt, className, isLoading }) => {
+    const [displayImageData, setDisplayImageData] = useState('');
+    const [currentImageFilename, setCurrentImageFilename] = useState('');
+
+    useEffect(() => {
+      // 如果是新圖片，立即顯示可用的版本
+      if (currentImageFilename !== image.filename) {
+        setCurrentImageFilename(image.filename);
+        
+        // 立即檢查是否有可用的圖片（完整或預覽）
+        const fullUrl = getImageDataUrl(image, true);
+        const previewUrl = getImageDataUrl(image, false);
+        
+        if (fullUrl) {
+          setDisplayImageData(fullUrl);
+        } else if (previewUrl) {
+          setDisplayImageData(previewUrl);
+        } else {
+          // 只有在完全沒有圖片資料時才顯示載入狀態
+          setDisplayImageData('');
+        }
+        return;
+      }
+
+      // 同一張圖片，檢查是否有更好的版本可以顯示
+      const fullUrl = getImageDataUrl(image, true);
+      if (fullUrl && displayImageData !== fullUrl) {
+        setDisplayImageData(fullUrl);
+      }
+    }, [image, displayImageData, currentImageFilename]);
+
+    if (!displayImageData) {
+      return (
+        <div className={`${className} bg-slate-700/50 flex items-center justify-center`}>
+          <div className="text-slate-400 text-center">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+            載入中...
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={displayImageData}
+        alt={alt}
+        className={className}
       />
     );
   };
@@ -785,10 +866,12 @@ const ImageViewer = () => {
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4">
             <div className="relative max-w-full max-h-full flex items-center justify-center">
               <div className="relative inline-block">
-                <LazyImage
+                {/* 顯示完整尺寸圖片，如果還沒載入則顯示預覽版本 */}
+                <FullSizeImage
                   image={fullscreenImage}
                   alt={fullscreenImage.filename}
                   className="max-w-full max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
+                  isLoading={fullscreenImageLoading}
                 />
                 
                 <button
@@ -802,6 +885,12 @@ const ImageViewer = () => {
                   <div className="text-white font-medium text-sm sm:text-base">{formatDateTime(fullscreenImage.filename)}</div>
                   <div className="text-slate-300 text-xs sm:text-sm mt-1">
                     {fullscreenImage.image_size} • {fullscreenImage.file_size}
+                    {fullscreenImageLoading && (
+                      <span className="ml-2 text-amber-400">
+                        <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />
+                        載入完整圖片中...
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
