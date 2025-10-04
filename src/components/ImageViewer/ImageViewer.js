@@ -389,7 +389,7 @@ const ImageViewer = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <Tooltip title={viewMode === 'grid' ? '切換到列表檢視' : '切換到網格檢視'}>
                 <IconButton
                   onClick={toggleViewMode}
@@ -497,7 +497,7 @@ const ImageViewer = () => {
 
               {/* Date filter */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                <FormControl size="small" sx={{ minWidth: '140px', width: '140px' }}>
+                <FormControl size="small" sx={{ minWidth: '110px', width: { xs: '110px', sm: '140px' } }}>
                   <Select
                     value={dateFilter ? dateFilter.toISOString().split('T')[0] : ''}
                     onChange={(e) => {
@@ -509,9 +509,25 @@ const ImageViewer = () => {
                       }
                     }}
                     displayEmpty
+                    renderValue={(selected) => {
+                      if (!selected) {
+                        return (
+                          <div className="flex items-center gap-1 w-full overflow-hidden">
+                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                            <span className="text-[12px] sm:text-xs truncate">所有日期</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex items-center gap-1 w-full overflow-hidden">
+                          <Calendar className="w-3 h-3 flex-shrink-0" />
+                          <span className="text-[12px] sm:text-xs truncate">{selected}</span>
+                        </div>
+                      );
+                    }}
                     sx={{
-                      minWidth: '140px',
-                      width: '140px',
+                      minWidth: '110px',
+                      width: { xs: '110px', sm: '140px' },
                       height: '32px',
                       backgroundColor: '#374151',
                       color: 'white',
@@ -527,9 +543,13 @@ const ImageViewer = () => {
                       },
                       '& .MuiSvgIcon-root': {
                         color: 'white',
+                        fontSize: '18px', // 縮小箭頭圖示
                       },
                       '& .MuiSelect-select': {
-                        padding: '6px 8px',
+                        paddingLeft: '6px',
+                        paddingRight: '28px', // 減少右側空間
+                        paddingTop: '6px',
+                        paddingBottom: '6px',
                         display: 'flex',
                         alignItems: 'center',
                       },
@@ -571,16 +591,16 @@ const ImageViewer = () => {
                     }}
                   >
                     <MenuItem value="">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3 h-3" />
-                        <span>所有日期</span>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">所有日期</span>
                       </div>
                     </MenuItem>
                     {getAvailableDates().map((dateStr) => (
                       <MenuItem key={dateStr} value={dateStr}>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-3 h-3" />
-                          <span>{dateStr}</span>
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{dateStr}</span>
                         </div>
                       </MenuItem>
                     ))}
@@ -590,7 +610,7 @@ const ImageViewer = () => {
 
               {/* Face name filter */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                <FormControl size="small" sx={{ minWidth: '140px', width: '140px' }}>
+                <FormControl size="small" sx={{ minWidth: '110px', width: { xs: '110px', sm: '140px' } }}>
                   <Select
                     value={faceNameFilter || ''}
                     onChange={(e) => {
@@ -602,9 +622,25 @@ const ImageViewer = () => {
                       }
                     }}
                     displayEmpty
+                    renderValue={(selected) => {
+                      if (!selected) {
+                        return (
+                          <div className="flex items-center gap-1 w-full overflow-hidden">
+                            <User className="w-3 h-3 flex-shrink-0" />
+                            <span className="text-[12px] sm:text-xs truncate">所有人物</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex items-center gap-1 w-full overflow-hidden">
+                          <User className="w-3 h-3 flex-shrink-0" />
+                          <span className="text-[12px] sm:text-xs truncate">{selected}</span>
+                        </div>
+                      );
+                    }}
                     sx={{
-                      minWidth: '140px',
-                      width: '140px',
+                      minWidth: '110px',
+                      width: { xs: '110px', sm: '140px' },
                       height: '32px',
                       backgroundColor: '#374151',
                       color: 'white',
@@ -620,9 +656,13 @@ const ImageViewer = () => {
                       },
                       '& .MuiSvgIcon-root': {
                         color: 'white',
+                        fontSize: '18px', // 縮小箭頭圖示
                       },
                       '& .MuiSelect-select': {
-                        padding: '6px 8px',
+                        paddingLeft: '6px',
+                        paddingRight: '28px', // 減少右側空間
+                        paddingTop: '6px',
+                        paddingBottom: '6px',
                         display: 'flex',
                         alignItems: 'center',
                       },
@@ -664,16 +704,16 @@ const ImageViewer = () => {
                     }}
                   >
                     <MenuItem value="">
-                      <div className="flex items-center gap-2">
-                        <User className="w-3 h-3" />
-                        <span>所有人物</span>
+                      <div className="flex items-center gap-1.5">
+                        <User className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">所有人物</span>
                       </div>
                     </MenuItem>
                     {availableFaceNames.map((name) => (
                       <MenuItem key={name} value={name}>
-                        <div className="flex items-center gap-2">
-                          <User className="w-3 h-3" />
-                          <span>{name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{name}</span>
                         </div>
                       </MenuItem>
                     ))}
