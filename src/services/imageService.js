@@ -46,7 +46,7 @@ class ImageApiService {
   }
 
   /**
-   * 獲取圖片列表元數據 (只返回檔案名稱列表)
+   * 獲取圖片列表元數據 (包含人臉識別資訊)
    */
   async getImageMetadata() {
     try {
@@ -62,24 +62,61 @@ class ImageApiService {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const filenames = await response.json();
-        console.log('✓ Image metadata loaded successfully:', filenames.length);
+        const metadata = await response.json();
+        console.log('✓ Image metadata loaded successfully:', metadata.length);
         
-        // 將檔案名稱轉換為包含基本資訊的物件
-        const metadata = filenames.map(filename => ({
-          filename,
-          timestamp: this.extractTimeFromFilename(filename),
-          type: this.getTypeFromFilename(filename),
-          // 其他資訊等需要時再載入
+        // 後端只回傳 filename 和 facenames (注意：後端是全小寫無底線)
+        // 前端需要自己計算 timestamp 和 type
+        const enrichedMetadata = metadata.map(item => ({
+          filename: item.filename,
+          face_names: item.facenames || [],  // 後端欄位是 facenames，前端統一為 face_names
+          timestamp: this.extractTimeFromFilename(item.filename),  // 前端計算
+          type: this.getTypeFromFilename(item.filename)  // 前端計算
         }));
         
-        return { success: true, images: this.sortImagesByDate(metadata) };
+        return { success: true, images: this.sortImagesByDate(enrichedMetadata) };
       } else {
         console.warn(`⚠ Failed to load metadata: ${response.status}`);
         return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
       }
     } catch (error) {
       console.error('✗ Failed to load image metadata:', error.message);
+      let errorMessage = error.message;
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = `Cannot reach server at ${this.baseHost}`;
+      }
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * 獲取所有人名列表
+   */
+  async getAllFaceNames() {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(`${this.baseHost}/storage/images/facename`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const faceNames = await response.json();
+        console.log('✓ Face names loaded successfully:', faceNames.length);
+        return { success: true, faceNames };
+      } else {
+        console.warn(`⚠ Failed to load face names: ${response.status}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+    } catch (error) {
+      console.error('✗ Failed to load face names:', error.message);
       let errorMessage = error.message;
       if (error.name === 'AbortError') {
         errorMessage = 'Request timed out';
@@ -182,6 +219,43 @@ class ImageApiService {
   }
 
   /**
+   * 刪除圖片
+   * @param {string} filename - 要刪除的圖片檔名
+   */
+  async deleteImage(filename) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(`${this.baseHost}/storage/image/${filename}`, {
+        signal: controller.signal,
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✓ Image deleted successfully: ${filename}`);
+        return { success: true, filename, message: result.message || 'Image deleted successfully' };
+      } else {
+        console.warn(`⚠ Failed to delete image ${filename}: ${response.status}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+    } catch (error) {
+      console.error(`✗ Failed to delete image ${filename}:`, error.message);
+      let errorMessage = error.message;
+      if (error.name === 'AbortError') {
+        errorMessage = 'Delete request timed out';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = `Cannot reach server at ${this.baseHost}`;
+      }
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
    * 根據檔名中的時間戳排序圖片 (最新的在前)
    */
   sortImagesByDate(images) {
@@ -200,10 +274,14 @@ class ImageApiService {
     const match = filename.match(/alarm_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})/);
     if (match) {
       const [, date, time] = match;
-      const formattedTime = time.replace(/-/g, ':');
-      return new Date(`${date}T${formattedTime}`);
+      const [year, month, day] = date.split('-').map(Number);
+      const [hour, minute, second] = time.split('-').map(Number);
+      
+      // 使用本地時間創建 Date 物件，避免時區問題
+      return new Date(year, month - 1, day, hour, minute, second);
     }
     return new Date(0); // fallback for invalid format
+  
   }
 
   /**

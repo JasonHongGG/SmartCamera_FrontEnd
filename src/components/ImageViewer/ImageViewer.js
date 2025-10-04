@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Image as ImageIcon, 
   Grid3X3, 
@@ -7,9 +7,10 @@ import {
   SortDesc, 
   SortAsc,
   X,
-  ZoomIn,
   Download,
+  Trash2,
   Calendar,
+  User,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -28,6 +29,7 @@ const ImageViewer = () => {
   const {
     images,
     allImages,
+    filteredImages,
     loading,
     pageLoading,
     error,
@@ -36,13 +38,22 @@ const ImageViewer = () => {
     currentPage,
     totalPages,
     itemsPerPage,
+    dateFilter,
+    faceNameFilter,
+    availableFaceNames,
     refreshImages,
+    deleteImage,
     toggleSortOrder,
     toggleViewMode,
     goToPage,
     goToNextPage,
     goToPrevPage,
     changeItemsPerPage,
+    setDateFilterValue,
+    clearDateFilter,
+    setFaceNameFilterValue,
+    clearFaceNameFilter,
+    getAvailableDates,
     getImageDataUrl,
     ensureImageLoaded
   } = useImageViewer(config.detectionHost);
@@ -75,16 +86,10 @@ const ImageViewer = () => {
     });
   };
 
-  const handleFullscreen = (image) => {
-    setFullscreenImage(image);
-    // 預載完整尺寸圖片
-    setFullscreenImageLoading(true);
-    ensureImageLoaded(image, true).finally(() => {
-      setFullscreenImageLoading(false);
-    });
-  };
-
-  const handleDownload = (image) => {
+  const handleDownload = async (image) => {
+    // 確保已載入完整尺寸圖片
+    await ensureImageLoaded(image, true);
+    
     // 下載時使用完整尺寸
     const link = document.createElement('a');
     link.href = getImageDataUrl(image, true) || getImageDataUrl(image, false); // fallback to preview if full not available
@@ -92,6 +97,29 @@ const ImageViewer = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleDelete = async (image) => {
+    // 確認刪除
+    if (!window.confirm(`確定要刪除圖片「${image.filename}」嗎？\n此操作無法復原。`)) {
+      return;
+    }
+
+    const result = await deleteImage(image.filename);
+    
+    if (result.success) {
+      // 如果正在全屏模式下刪除，關閉全屏
+      if (fullscreenImage && fullscreenImage.filename === image.filename) {
+        setFullscreenImage(null);
+      }
+      
+      // 顯示成功訊息（可選）
+      console.log('✓ 圖片已刪除:', image.filename);
+    } else {
+      // 顯示錯誤訊息
+      alert(`刪除失敗: ${result.error}`);
+      console.error('✗ 刪除圖片失敗:', result.error);
+    }
   };
 
   // Lazy loading image component with Intersection Observer
@@ -171,7 +199,8 @@ const ImageViewer = () => {
       };
 
       loadImage();
-    }, [image.filename, isVisible, currentFilename]); // 只依賴 filename
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [image.filename, isVisible, currentFilename, imageData]); // imageData 用於檢測更新
 
     if (hasError) {
       return (
@@ -237,7 +266,8 @@ const ImageViewer = () => {
       if (fullUrl && displayImageData !== fullUrl) {
         setDisplayImageData(fullUrl);
       }
-    }, [image, displayImageData, currentImageFilename]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [image.filename, displayImageData, currentImageFilename]); // getImageDataUrl 是穩定的函數引用
 
     if (!displayImageData) {
       return (
@@ -289,12 +319,12 @@ const ImageViewer = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleFullscreen(image);
+                  handleDelete(image);
                 }}
-                className="p-1 bg-slate-600/50 hover:bg-slate-500/70 rounded transition-colors"
-                title="放大檢視"
+                className="p-1 bg-red-600/50 hover:bg-red-500/70 rounded transition-colors"
+                title="刪除圖片"
               >
-                <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
               </button>
               <button
                 onClick={(e) => {
@@ -320,12 +350,12 @@ const ImageViewer = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleFullscreen(image);
+                handleDelete(image);
               }}
-              className="flex-1 py-1.5 px-2 sm:py-1.5 sm:px-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 min-h-[28px] h-7"
+              className="flex-1 py-1.5 px-2 sm:py-1.5 sm:px-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 min-h-[28px] h-7"
             >
-              <ZoomIn className="w-3 h-3" />
-              <span className="inline">放大</span>
+              <Trash2 className="w-3 h-3" />
+              <span className="inline">刪除</span>
             </button>
             <button
               onClick={(e) => {
@@ -465,6 +495,192 @@ const ImageViewer = () => {
                 </IconButton>
               </Tooltip>
 
+              {/* Date filter */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <FormControl size="small" sx={{ minWidth: '140px', width: '140px' }}>
+                  <Select
+                    value={dateFilter ? dateFilter.toISOString().split('T')[0] : ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value) {
+                        setDateFilterValue(new Date(value));
+                      } else {
+                        clearDateFilter();
+                      }
+                    }}
+                    displayEmpty
+                    sx={{
+                      minWidth: '140px',
+                      width: '140px',
+                      height: '32px',
+                      backgroundColor: '#374151',
+                      color: 'white',
+                      fontSize: '0.75rem',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#6b7280',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#9ca3af',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#eab308',
+                      },
+                      '& .MuiSvgIcon-root': {
+                        color: 'white',
+                      },
+                      '& .MuiSelect-select': {
+                        padding: '6px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                      },
+                    }}
+                    MenuProps={{
+                      disableScrollLock: true,
+                      disablePortal: false,
+                      PaperProps: {
+                        sx: {
+                          bgcolor: '#374151',
+                          border: '1px solid #6b7280',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                          minWidth: '140px',
+                          maxHeight: '300px',
+                          '&::-webkit-scrollbar': {
+                            display: 'none',
+                          },
+                          scrollbarWidth: 'none',
+                          msOverflowStyle: 'none',
+                          overflow: 'auto',
+                          '& .MuiMenuItem-root': {
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            minHeight: '32px',
+                            padding: '6px 12px',
+                            '&:hover': {
+                              bgcolor: 'rgba(245, 158, 11, 0.2)',
+                            },
+                            '&.Mui-selected': {
+                              bgcolor: 'rgba(245, 158, 11, 0.3)',
+                              '&:hover': {
+                                bgcolor: 'rgba(245, 158, 11, 0.4)',
+                              },
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    <MenuItem value="">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        <span>所有日期</span>
+                      </div>
+                    </MenuItem>
+                    {getAvailableDates().map((dateStr) => (
+                      <MenuItem key={dateStr} value={dateStr}>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3 h-3" />
+                          <span>{dateStr}</span>
+                        </div>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </div>
+
+              {/* Face name filter */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <FormControl size="small" sx={{ minWidth: '140px', width: '140px' }}>
+                  <Select
+                    value={faceNameFilter || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value) {
+                        setFaceNameFilterValue(value);
+                      } else {
+                        clearFaceNameFilter();
+                      }
+                    }}
+                    displayEmpty
+                    sx={{
+                      minWidth: '140px',
+                      width: '140px',
+                      height: '32px',
+                      backgroundColor: '#374151',
+                      color: 'white',
+                      fontSize: '0.75rem',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#6b7280',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#9ca3af',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#eab308',
+                      },
+                      '& .MuiSvgIcon-root': {
+                        color: 'white',
+                      },
+                      '& .MuiSelect-select': {
+                        padding: '6px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                      },
+                    }}
+                    MenuProps={{
+                      disableScrollLock: true,
+                      disablePortal: false,
+                      PaperProps: {
+                        sx: {
+                          bgcolor: '#374151',
+                          border: '1px solid #6b7280',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                          minWidth: '140px',
+                          maxHeight: '300px',
+                          '&::-webkit-scrollbar': {
+                            display: 'none',
+                          },
+                          scrollbarWidth: 'none',
+                          msOverflowStyle: 'none',
+                          overflow: 'auto',
+                          '& .MuiMenuItem-root': {
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            minHeight: '32px',
+                            padding: '6px 12px',
+                            '&:hover': {
+                              bgcolor: 'rgba(245, 158, 11, 0.2)',
+                            },
+                            '&.Mui-selected': {
+                              bgcolor: 'rgba(245, 158, 11, 0.3)',
+                              '&:hover': {
+                                bgcolor: 'rgba(245, 158, 11, 0.4)',
+                              },
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    <MenuItem value="">
+                      <div className="flex items-center gap-2">
+                        <User className="w-3 h-3" />
+                        <span>所有人物</span>
+                      </div>
+                    </MenuItem>
+                    {availableFaceNames.map((name) => (
+                      <MenuItem key={name} value={name}>
+                        <div className="flex items-center gap-2">
+                          <User className="w-3 h-3" />
+                          <span>{name}</span>
+                        </div>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </div>
+
               {/* Items per page selector */}
               <div className="flex items-center gap-2 flex-shrink-0" style={{ minWidth: '90px' }}>
                 <FormControl size="small" sx={{ minWidth: '90px', width: '90px' }}>
@@ -566,7 +782,15 @@ const ImageViewer = () => {
           {allImages.length > 0 && (
             <div className="mt-3 sm:mt-4 text-slate-300 text-xs sm:text-sm">
               <span className="block sm:inline">
-                總共 {allImages.length} 張圖片
+                {(dateFilter || faceNameFilter) ? (
+                  <>
+                    篩選結果: {filteredImages.length} 張 / 總共 {allImages.length} 張圖片
+                  </>
+                ) : (
+                  <>
+                    總共 {allImages.length} 張圖片
+                  </>
+                )}
                 {totalPages > 1 && (
                   <span> (第 {currentPage} 頁，共 {totalPages} 頁)</span>
                 )}
@@ -577,6 +801,22 @@ const ImageViewer = () => {
               <span className="block sm:inline">排序: {sortOrder === 'newest' ? '最新優先' : '最舊優先'}</span>
               <span className="hidden sm:inline"> • </span>
               <span className="block sm:inline">檢視: {viewMode === 'grid' ? '網格' : '列表'}</span>
+              {dateFilter && (
+                <>
+                  <span className="hidden sm:inline"> • </span>
+                  <span className="block sm:inline text-amber-400">
+                    篩選日期: {dateFilter.toISOString().split('T')[0]}
+                  </span>
+                </>
+              )}
+              {faceNameFilter && (
+                <>
+                  <span className="hidden sm:inline"> • </span>
+                  <span className="block sm:inline text-amber-400">
+                    篩選人物: {faceNameFilter}
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -651,7 +891,7 @@ const ImageViewer = () => {
               <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                 {/* Pagination Info */}
                 <div className="text-slate-400 text-sm">
-                  顯示第 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, allImages.length)} 項，共 {allImages.length} 項
+                  顯示第 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredImages.length)} 項，共 {filteredImages.length} 項
                 </div>
 
                 {/* Pagination Controls */}
@@ -863,8 +1103,14 @@ const ImageViewer = () => {
 
         {/* Fullscreen Modal */}
         {fullscreenImage && (
-          <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4">
-            <div className="relative max-w-full max-h-full flex items-center justify-center">
+          <div 
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4"
+            onClick={() => setFullscreenImage(null)}
+          >
+            <div 
+              className="relative max-w-full max-h-full flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="relative inline-block">
                 {/* 顯示完整尺寸圖片，如果還沒載入則顯示預覽版本 */}
                 <FullSizeImage
@@ -880,7 +1126,7 @@ const ImageViewer = () => {
                 >
                   <X className="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" />
                 </button>
-                
+
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 sm:p-4 rounded-b-lg">
                   <div className="text-white font-medium text-sm sm:text-base">{formatDateTime(fullscreenImage.filename)}</div>
                   <div className="text-slate-300 text-xs sm:text-sm mt-1">

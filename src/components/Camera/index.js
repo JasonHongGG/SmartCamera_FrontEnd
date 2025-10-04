@@ -5,6 +5,7 @@ export { default as StreamViewer } from './StreamViewer';
 export { default as ControlGroup } from './ControlGroup';
 export { default as Toggle } from './Toggle';
 export { default as Slider } from './Slider';
+export { default as CustomSelect } from './CustomSelect';
 export { BasicControls, ImageSettings } from './CameraControls';
 export { 
   WhiteBalanceControls, 

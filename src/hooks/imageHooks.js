@@ -3,6 +3,7 @@ import { ImageApiService } from '../services/imageService';
 
 export const useImageViewer = (detectionHost) => {
   const [allImages, setAllImages] = useState([]);
+  const [filteredImages, setFilteredImages] = useState([]); // 篩選後的圖片
   const [images, setImages] = useState([]); // Current page images
   const [loadedImages, setLoadedImages] = useState(new Map()); // Cache for loaded image data (preview size)
   const [fullSizeImages, setFullSizeImages] = useState(new Map()); // Cache for full-size images
@@ -14,6 +15,9 @@ export const useImageViewer = (detectionHost) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10); // 每頁顯示圖片數量
   const [totalPages, setTotalPages] = useState(0);
+  const [dateFilter, setDateFilter] = useState(null); // 日期篩選 (Date 物件或 null)
+  const [faceNameFilter, setFaceNameFilter] = useState(null); // 人名篩選 (string 或 null)
+  const [availableFaceNames, setAvailableFaceNames] = useState([]); // 可用的人名列表
   const apiServiceRef = useRef(null);
   const loadedImagesRef = useRef(loadedImages); // 使用 ref 追蹤最新的 loadedImages
   const fullSizeImagesRef = useRef(fullSizeImages); // 使用 ref 追蹤最新的 fullSizeImages
@@ -63,38 +67,119 @@ export const useImageViewer = (detectionHost) => {
     }
   }, [detectionHost]);
 
-  // Update pagination when allImages or itemsPerPage changes
+  // 載入人名列表
   useEffect(() => {
-    const total = Math.ceil(allImages.length / itemsPerPage);
+    const loadFaceNames = async () => {
+      if (!detectionHost || !apiServiceRef.current) {
+        console.log('⚠️ API service not initialized yet');
+        return;
+      }
+      
+      console.log('🔍 Loading face names from API...');
+      
+      // 從 /storage/images/facename API 載入所有系統能偵測的人名
+      // 這些人名代表系統能識別的所有人，不管目前有沒有照片
+      const result = await apiServiceRef.current.getAllFaceNames();
+      
+      console.log('📥 Face names API result:', result);
+      
+      if (result.success && result.faceNames && result.faceNames.length > 0) {
+        // 排序後設定為可用的人名列表
+        const sortedFaceNames = [...result.faceNames].sort();
+        console.log('✅ Available face names set to:', sortedFaceNames);
+        setAvailableFaceNames(sortedFaceNames);
+      } else {
+        // API 沒有回傳人名，設定為空陣列
+        console.log('⚠️ No face names returned from API or request failed');
+        setAvailableFaceNames([]);
+      }
+    };
+
+    loadFaceNames();
+  }, [detectionHost]); // 當 detectionHost 變化時重新載入（也就是 API service 初始化完成時）
+
+  // 日期和人名篩選邏輯（合併）
+  useEffect(() => {
+    let filtered = allImages;
+    
+    // 日期篩選
+    if (dateFilter) {
+      filtered = filtered.filter(image => {
+        const imageDate = extractDateFromFilename(image.filename);
+        if (!imageDate) return false;
+        
+        // 比較日期（只比較年月日，忽略時間）- 使用本地時間避免時區問題
+        const filterYear = dateFilter.getFullYear();
+        const filterMonth = dateFilter.getMonth();
+        const filterDay = dateFilter.getDate();
+        
+        const imageYear = imageDate.getFullYear();
+        const imageMonth = imageDate.getMonth();
+        const imageDay = imageDate.getDate();
+        
+        return filterYear === imageYear && filterMonth === imageMonth && filterDay === imageDay;
+      });
+    }
+    
+    // 人名篩選
+    if (faceNameFilter) {
+      filtered = filtered.filter(image => 
+        image.face_names && 
+        Array.isArray(image.face_names) && 
+        image.face_names.includes(faceNameFilter)
+      );
+    }
+    
+    setFilteredImages(filtered);
+    setCurrentPage(1); // 篩選後重置到第一頁
+  }, [allImages, dateFilter, faceNameFilter]);
+
+  // Helper: 從檔名提取日期
+  const extractDateFromFilename = (filename) => {
+    const match = filename.match(/alarm_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})/);
+    if (match) {
+      const [, date, time] = match;
+      const [year, month, day] = date.split('-').map(Number);
+      const [hour, minute, second] = time.split('-').map(Number);
+      
+      // 使用本地時間創建 Date 物件，避免時區問題
+      return new Date(year, month - 1, day, hour, minute, second);
+    }
+    return null;
+  };
+
+  // Update pagination when filteredImages or itemsPerPage changes
+  useEffect(() => {
+    const total = Math.ceil(filteredImages.length / itemsPerPage);
     setTotalPages(total);
     
     // Reset to page 1 if current page exceeds total pages
     if (currentPage > total && total > 0) {
       setCurrentPage(1);
     }
-  }, [allImages.length, itemsPerPage, currentPage]);
+  }, [filteredImages.length, itemsPerPage, currentPage]);
 
   // Load current page images when page changes
   useEffect(() => {
     const loadCurrentPageImages = async () => {
-      if (allImages.length === 0) return;
+      // 如果沒有圖片，清空 images 並返回
+      if (filteredImages.length === 0) {
+        setImages([]);
+        setPageLoading(false);
+        return;
+      }
 
       const startIndex = (currentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
-      const pageImages = allImages.slice(startIndex, endIndex);
+      const pageImages = filteredImages.slice(startIndex, endIndex);
 
       // 預載下一頁的圖片
       const nextPageStartIndex = endIndex;
       const nextPageEndIndex = nextPageStartIndex + itemsPerPage;
-      const nextPageImages = allImages.slice(nextPageStartIndex, nextPageEndIndex);
+      const nextPageImages = filteredImages.slice(nextPageStartIndex, nextPageEndIndex);
 
       // 檢查哪些圖片還沒有載入完整數據
       const imagesToLoad = pageImages
-        .filter(img => !loadedImagesRef.current.has(img.filename))
-        .map(img => img.filename);
-
-      // 預載下一頁（但不阻塞當前頁）
-      const nextImagesToLoad = nextPageImages
         .filter(img => !loadedImagesRef.current.has(img.filename))
         .map(img => img.filename);
 
@@ -114,54 +199,42 @@ export const useImageViewer = (detectionHost) => {
             batches.map(batch => apiServiceRef.current.getBatchImages(batch, PREVIEW_WIDTH))
           );
 
-          // 更新 loadedImages cache 並補充原始 metadata
-          setLoadedImages(prev => {
-            let newLoadedImages = new Map(prev);
-            results.forEach(result => {
-              if (result.success) {
-                result.images.forEach(image => {
-                  newLoadedImages.set(image.filename, image);
-                  
-                  // 同時更新 allImages 中對應項目的 metadata
-                  setAllImages(prevAll => prevAll.map(item => {
-                    if (item.filename === image.filename) {
-                      return {
-                        ...item,
-                        image_size: item.image_size || image.image_size,
-                        file_size: item.file_size || image.file_size,
-                        type: item.type || image.type
-                      };
-                    }
-                    return item;
-                  }));
-                });
-              }
-            });
-            
-            // 限制 cache 大小，保留當前頁和下一頁的圖片
-            const keysToKeep = [...pageImages.map(img => img.filename), ...nextPageImages.map(img => img.filename)];
-            newLoadedImages = limitCacheSize(newLoadedImages, keysToKeep);
-            return newLoadedImages;
+          // 先建立新的 loadedImages Map
+          const newLoadedImages = new Map(loadedImagesRef.current);
+          results.forEach(result => {
+            if (result.success) {
+              result.images.forEach(image => {
+                // 直接存入快取，包含 data, type, image_size, file_size
+                newLoadedImages.set(image.filename, image);
+              });
+            }
           });
+          
+          // 限制 cache 大小，保留當前頁和下一頁的圖片
+          const keysToKeep = [...pageImages.map(img => img.filename), ...nextPageImages.map(img => img.filename)];
+          const limitedLoadedImages = limitCacheSize(newLoadedImages, keysToKeep);
+          
+          // 更新 loadedImages cache
+          setLoadedImages(limitedLoadedImages);
 
-          // 合併元數據和圖片數據 - 保留原始 metadata，補充缺失的資訊
+          // 合併 allImages 的 metadata 和 loadedImages 的圖片資料
           setImages(prevImages => {
             const newImages = pageImages.map(metadata => {
-              const imageData = loadedImagesRef.current.get(metadata.filename) || results.find(r => r.success)?.images.find(img => img.filename === metadata.filename);
+              // 使用剛建立的 limitedLoadedImages
+              const imageData = limitedLoadedImages.get(metadata.filename);
               if (imageData) {
-                // 保留原始的 metadata，補充圖片 data 和缺失的資訊
+                // 合併: metadata (filename, face_names, timestamp, type) + imageData (data, image_size, file_size)
                 return {
-                  ...metadata,
-                  data: imageData.data,
-                  type: imageData.type || metadata.type,
-                  image_size: metadata.image_size || imageData.image_size,
-                  file_size: metadata.file_size || imageData.file_size
+                  ...metadata,           // 來自 /storage/images/metadata
+                  data: imageData.data,  // 來自 /storage/image/batch
+                  image_size: imageData.image_size,
+                  file_size: imageData.file_size
                 };
               }
-              return metadata;
+              return metadata; // 如果還沒載入，只回傳 metadata
             });
             
-            // 檢查是否真的需要更新 - 比較內容而不是引用
+            // 檢查是否真的需要更新
             if (prevImages.length === newImages.length) {
               const hasChanges = newImages.some((newImage, index) => {
                 const prevImage = prevImages[index];
@@ -172,29 +245,36 @@ export const useImageViewer = (detectionHost) => {
               });
               
               if (!hasChanges) {
-                return prevImages; // 保持原有引用，避免重新渲染
+                return prevImages;
               }
             }
             
             return newImages;
           });
 
-          // 背景預載下一頁（不等待）(預覽尺寸)
-          if (nextImagesToLoad.length > 0) {
-            apiServiceRef.current.getBatchImages(nextImagesToLoad, PREVIEW_WIDTH).then(result => {
-              if (result.success) {
-                setLoadedImages(prev => {
-                  let updated = new Map(prev);
-                  result.images.forEach(image => {
-                    updated.set(image.filename, image);
+          // 預載下一頁（在當前頁載入完成後）
+          if (nextPageImages.length > 0) {
+            const nextImagesToLoad = nextPageImages.filter(img => 
+              !loadedImagesRef.current.has(img.filename)
+            );
+            
+            if (nextImagesToLoad.length > 0) {
+              const filenamesToLoad = nextImagesToLoad.map(img => img.filename);
+              console.log('Preload next page:', filenamesToLoad);
+              apiServiceRef.current.getBatchImages(filenamesToLoad, PREVIEW_WIDTH).then(result => {
+                if (result.success) {
+                  setLoadedImages(prev => {
+                    let updated = new Map(prev);
+                    result.images.forEach(image => {
+                      updated.set(image.filename, image);
+                    });
+                    const keysToKeep = [...pageImages.map(img => img.filename), ...nextPageImages.map(img => img.filename)];
+                    updated = limitCacheSize(updated, keysToKeep);
+                    return updated;
                   });
-                  // 限制 cache 大小
-                  const keysToKeep = [...pageImages.map(img => img.filename), ...nextPageImages.map(img => img.filename)];
-                  updated = limitCacheSize(updated, keysToKeep);
-                  return updated;
-                });
-              }
-            }).catch(err => console.log('Preload next page failed:', err));
+                }
+              }).catch(err => console.log('Preload next page failed:', err));
+            }
           }
         } catch (error) {
           console.error('Failed to load page images:', error);
@@ -205,24 +285,23 @@ export const useImageViewer = (detectionHost) => {
         // 所有圖片都已載入，確保 pageLoading 為 false
         setPageLoading(false);
         
-        // 所有圖片都已載入，直接合併數據 - 但要檢查是否真的需要更新
+        // 所有圖片都已載入，直接合併數據
         setImages(prevImages => {
           const mergedImages = pageImages.map(metadata => {
             const imageData = loadedImagesRef.current.get(metadata.filename);
             if (imageData) {
-              // 保留原始的 metadata，補充圖片 data 和缺失的資訊
+              // 合併: metadata (filename, face_names, timestamp, type) + imageData (data, image_size, file_size)
               return {
-                ...metadata,
-                data: imageData.data,
-                type: imageData.type || metadata.type,
-                image_size: metadata.image_size || imageData.image_size,
-                file_size: metadata.file_size || imageData.file_size
+                ...metadata,           // 來自 /storage/images/metadata
+                data: imageData.data,  // 來自 /storage/image/batch
+                image_size: imageData.image_size,
+                file_size: imageData.file_size
               };
             }
-            return metadata;
+            return metadata; // 如果還沒載入，只回傳 metadata
           });
           
-          // 檢查是否真的需要更新 - 比較內容而不是引用
+          // 檢查是否真的需要更新
           if (prevImages.length === mergedImages.length) {
             const hasChanges = mergedImages.some((newImage, index) => {
               const prevImage = prevImages[index];
@@ -233,35 +312,19 @@ export const useImageViewer = (detectionHost) => {
             });
             
             if (!hasChanges) {
-              return prevImages; // 保持原有引用，避免重新渲染
+              return prevImages;
             }
           }
           
           return mergedImages;
         });
         
-        // 仍然預載下一頁 (預覽尺寸)
-        if (nextImagesToLoad.length > 0) {
-          apiServiceRef.current.getBatchImages(nextImagesToLoad, PREVIEW_WIDTH).then(result => {
-            if (result.success) {
-              setLoadedImages(prev => {
-                let updated = new Map(prev);
-                result.images.forEach(image => {
-                  updated.set(image.filename, image);
-                });
-                // 限制 cache 大小
-                const keysToKeep = [...pageImages.map(img => img.filename), ...nextPageImages.map(img => img.filename)];
-                updated = limitCacheSize(updated, keysToKeep);
-                return updated;
-              });
-            }
-          }).catch(err => console.log('Preload next page failed:', err));
-        }
+        // 不在這裡預載，統一移到外面
       }
     };
 
     loadCurrentPageImages();
-  }, [allImages, currentPage, itemsPerPage, limitCacheSize]); // 移除 loadedImages 依賴
+  }, [filteredImages, currentPage, itemsPerPage, limitCacheSize]); // 使用 filteredImages 而非 allImages
 
   // Load all images metadata (without base64 data)
   const loadImages = useCallback(async () => {
@@ -322,15 +385,15 @@ export const useImageViewer = (detectionHost) => {
     const cache = fullSize ? fullSizeImagesRef.current : loadedImagesRef.current;
     const cacheKey = image.filename; // 統一使用 filename 作為 key
     
-    // If we have the full data, use it directly
-    if (image.data) {
-      return `data:image/${image.type};base64,${image.data}`;
-    }
-    
-    // If we have cached data, use it
+    // 優先使用對應 cache 中的數據
     const cachedImage = cache.get(cacheKey);
     if (cachedImage && cachedImage.data) {
       return `data:image/${cachedImage.type};base64,${cachedImage.data}`;
+    }
+    
+    // 如果是預覽版本且 image.data 存在，使用它（批次載入的預覽版本）
+    if (!fullSize && image.data) {
+      return `data:image/${image.type};base64,${image.data}`;
     }
     
     // Return a placeholder or trigger lazy loading
@@ -344,11 +407,17 @@ export const useImageViewer = (detectionHost) => {
     const cache = fullSize ? fullSizeImagesRef.current : loadedImagesRef.current;
     const cacheKey = image.filename; // 統一使用 filename
     
-    // 如果已經有數據或已經快取，直接返回
-    if (image.data || cache.has(cacheKey)) {
+    // 檢查指定大小的快取是否存在
+    if (cache.has(cacheKey)) {
+      return; // 已經有對應大小的快取
+    }
+    
+    // 如果是預覽尺寸且 image.data 已存在（可能是批次載入的預覽版本），直接返回
+    if (!fullSize && image.data) {
       return;
     }
     
+    // 載入對應大小的圖片
     const width = fullSize ? null : PREVIEW_WIDTH;
     await loadImageDetails(image.filename, width);
   }, [loadImageDetails, PREVIEW_WIDTH]);
@@ -359,6 +428,30 @@ export const useImageViewer = (detectionHost) => {
     setFullSizeImages(new Map()); // Clear full-size cache
     loadImages();
   }, [loadImages]);
+
+  // Delete image
+  const deleteImage = useCallback(async (filename) => {
+    if (!apiServiceRef.current) return { success: false, error: 'API service not initialized' };
+
+    const result = await apiServiceRef.current.deleteImage(filename);
+    
+    if (result.success) {
+      // 從所有列表和快取中移除圖片
+      setAllImages(prev => prev.filter(img => img.filename !== filename));
+      setLoadedImages(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(filename);
+        return newMap;
+      });
+      setFullSizeImages(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(filename);
+        return newMap;
+      });
+    }
+    
+    return result;
+  }, []);
 
   // Toggle sort order
   const toggleSortOrder = useCallback(() => {
@@ -395,6 +488,43 @@ export const useImageViewer = (detectionHost) => {
     setCurrentPage(1); // Reset to first page when changing items per page
   }, []);
 
+  // Set date filter
+  const setDateFilterValue = useCallback((date) => {
+    setDateFilter(date);
+  }, []);
+
+  // Clear date filter
+  const clearDateFilter = useCallback(() => {
+    setDateFilter(null);
+  }, []);
+
+  // Set face name filter
+  const setFaceNameFilterValue = useCallback((faceName) => {
+    setFaceNameFilter(faceName);
+  }, []);
+
+  // Clear face name filter
+  const clearFaceNameFilter = useCallback(() => {
+    setFaceNameFilter(null);
+  }, []);
+
+  // Get unique dates from all images
+  const getAvailableDates = useCallback(() => {
+    const dateSet = new Set();
+    allImages.forEach(image => {
+      const date = extractDateFromFilename(image.filename);
+      if (date) {
+        // 使用本地時間格式化日期，避免 toISOString() 的 UTC 轉換
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        dateSet.add(dateStr);
+      }
+    });
+    return Array.from(dateSet).sort().reverse(); // 最新的日期在前
+  }, [allImages]);
+
   // Auto-refresh on mount
   useEffect(() => {
     if (apiServiceRef.current) {
@@ -405,6 +535,7 @@ export const useImageViewer = (detectionHost) => {
   return {
     images,
     allImages,
+    filteredImages,
     loadedImages,
     fullSizeImages,
     loading,
@@ -415,15 +546,24 @@ export const useImageViewer = (detectionHost) => {
     currentPage,
     totalPages,
     itemsPerPage,
+    dateFilter,
+    faceNameFilter,
+    availableFaceNames,
     loadImages,
     loadImageDetails,
     refreshImages,
+    deleteImage,
     toggleSortOrder,
     toggleViewMode,
     goToPage,
     goToNextPage,
     goToPrevPage,
     changeItemsPerPage,
+    setDateFilterValue,
+    clearDateFilter,
+    setFaceNameFilterValue,
+    clearFaceNameFilter,
+    getAvailableDates,
     getImageDataUrl,
     ensureImageLoaded,
     apiService: apiServiceRef.current
