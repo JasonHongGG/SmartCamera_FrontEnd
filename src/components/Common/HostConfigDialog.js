@@ -9,7 +9,7 @@ import {
   Box,
   Typography
 } from '@mui/material';
-import { Settings, Globe } from 'lucide-react';
+import { Globe } from 'lucide-react';
 
 const HostConfigDialog = ({ 
   open, 

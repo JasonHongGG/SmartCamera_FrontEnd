@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
+import { CssBaseline, CircularProgress, Box } from '@mui/material';
 import { muiTheme } from './theme';
 import { AppConfigProvider } from './context/AppConfigContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import NavigationBar from './components/Common/NavigationBar';
 import HostConfigDialog from './components/Common/HostConfigDialog';
 import CameraInterface from './components/Camera/CameraInterface';
 import DetectionInterface from './components/Detection/DetectionInterface';
 import ImageViewer from './components/ImageViewer/ImageViewer';
+import LoginPage from './components/Auth/LoginPage';
 import { useAppConfig } from './context/AppConfigContext';
 import './App.css';
 
 const AppContent = () => {
   const { config, updateConfig } = useAppConfig();
+  const { isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('camera');
   const [hostDialogOpen, setHostDialogOpen] = useState(false);
 
@@ -20,6 +23,26 @@ const AppContent = () => {
     updateConfig(newConfig);
   };
 
+  // 顯示載入畫面
+  if (loading) {
+    return (
+      <Box
+        className="min-h-screen flex items-center justify-center"
+        sx={{
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+        }}
+      >
+        <CircularProgress size={60} sx={{ color: '#eab308' }} />
+      </Box>
+    );
+  }
+
+  // 如果未登入，顯示登入頁面
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  // eslint-disable-next-line no-unused-vars
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'camera':
@@ -93,9 +116,11 @@ const App = () => {
   return (
     <ThemeProvider theme={muiTheme}>
       <CssBaseline />
-      <AppConfigProvider>
-        <AppContent />
-      </AppConfigProvider>
+      <AuthProvider>
+        <AppConfigProvider>
+          <AppContent />
+        </AppConfigProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 };

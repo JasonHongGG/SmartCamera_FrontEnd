@@ -14,6 +14,7 @@ const MotionDetection = () => {
     customSensitivity, 
     toggleDetection, 
     setSensitivity,
+    // eslint-disable-next-line no-unused-vars
     setCustomSensitivity 
   } = useMotionDetection(config.detectionHost);
 

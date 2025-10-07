@@ -10,6 +10,7 @@ const CrosslineDetection = () => {
     state,
     setState,
     realImageLines,
+    // eslint-disable-next-line no-unused-vars
     setRealImageLines,
     liveCoordinates,
     setLiveCoordinates,
@@ -179,6 +180,7 @@ const CrosslineDetection = () => {
         hoveredPoint: pointAt
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.enabled, state.isDragging, state.dragTarget, getImageTransformation, realImageSize, getPointAtPosition, setState, setLiveCoordinates]);
   
   const updateDragPosition = useCallback((imageX, imageY) => {

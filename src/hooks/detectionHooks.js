@@ -69,6 +69,7 @@ export const useMotionDetection = (detectionHost) => {
     } catch (error) {
       console.error('Failed to toggle motion detection:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.enabled, executeAsync]);
 
   const setSensitivity = useCallback(async (sensitivity, customValues = null) => {
@@ -122,11 +123,13 @@ export const useMotionDetection = (detectionHost) => {
       console.error('Error setting motion sensitivity:', error);
       throw error;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executeAsync]);
 
   // 更新 API 服務的主機地址
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detectionHost]);
 
   return {
@@ -207,11 +210,13 @@ export const useFaceDetection = (detectionHost) => {
     } catch (error) {
       console.error('Failed to toggle face detection:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.enabled, executeAsync]);
 
   // 更新 API 服務的主機地址
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detectionHost]);
 
   return {
@@ -296,6 +301,7 @@ export const useCrosslineDetection = (detectionHost) => {
     } catch (error) {
       console.error('Failed to toggle crossline detection:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.enabled, executeAsync]);
 
   const syncLinesToServer = useCallback(async (lines) => {
@@ -316,6 +322,7 @@ export const useCrosslineDetection = (detectionHost) => {
       console.error('Error syncing lines to server:', error);
       return { success: false, error: error.message };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realImageSize]);
 
   const addVerticalLine = useCallback((e) => {
@@ -368,6 +375,7 @@ export const useCrosslineDetection = (detectionHost) => {
   // 更新 API 服務的主機地址
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detectionHost]);
 
   return {
@@ -459,11 +467,13 @@ export const usePipelineDetection = (detectionHost) => {
     } catch (error) {
       console.error('Failed to toggle pipeline detection:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.enabled, executeAsync]);
 
   // 更新 API 服務的主機地址
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detectionHost]);
 
   return {
