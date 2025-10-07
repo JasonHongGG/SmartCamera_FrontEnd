@@ -50,8 +50,12 @@ export const AuthProvider = ({ children }) => {
       );
 
       if (user) {
-        // 不儲存密碼，只儲存使用者名稱
-        const userInfo = { username: user.username };
+        // 儲存使用者資訊（不包含密碼）和權限
+        const userInfo = { 
+          username: user.username,
+          role: user.role,
+          permissions: user.permissions
+        };
         const authToken = btoa(`${username}:${Date.now()}`); // 簡單的 token 生成
         
         localStorage.setItem('currentUser', JSON.stringify(userInfo));
@@ -78,12 +82,27 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
+  // 檢查權限函數
+  const hasPermission = (module, action) => {
+    if (!currentUser || !currentUser.permissions) {
+      return false;
+    }
+    
+    const modulePermissions = currentUser.permissions[module];
+    if (!modulePermissions) {
+      return false;
+    }
+    
+    return modulePermissions[action] === true;
+  };
+
   const value = {
     isAuthenticated,
     currentUser,
     loading,
     login,
-    logout
+    logout,
+    hasPermission
   };
 
   return (

@@ -20,6 +20,8 @@ import {
 import { IconButton, Tooltip, Select, MenuItem, FormControl } from '@mui/material';
 import { useImageViewer } from '../../hooks/imageHooks';
 import { useAppConfig } from '../../context/AppConfigContext';
+import { usePermission } from '../../hooks/usePermission';
+import PermissionDialog from '../Common/PermissionDialog';
 
 const ImageViewer = () => {
   const { config } = useAppConfig();
@@ -58,6 +60,9 @@ const ImageViewer = () => {
     ensureImageLoaded
   } = useImageViewer(config.detectionHost);
 
+  // 權限管理
+  const { checkPermission, permissionDialog, closePermissionDialog } = usePermission();
+
   const formatDateTime = (filename) => {
     const match = filename.match(/alarm_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})/);
     if (match) {
@@ -87,39 +92,43 @@ const ImageViewer = () => {
   };
 
   const handleDownload = async (image) => {
-    // 確保已載入完整尺寸圖片
-    await ensureImageLoaded(image, true);
-    
-    // 下載時使用完整尺寸
-    const link = document.createElement('a');
-    link.href = getImageDataUrl(image, true) || getImageDataUrl(image, false); // fallback to preview if full not available
-    link.download = image.filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    checkPermission('images', 'download', async () => {
+      // 確保已載入完整尺寸圖片
+      await ensureImageLoaded(image, true);
+      
+      // 下載時使用完整尺寸
+      const link = document.createElement('a');
+      link.href = getImageDataUrl(image, true) || getImageDataUrl(image, false); // fallback to preview if full not available
+      link.download = image.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
   };
 
   const handleDelete = async (image) => {
-    // 確認刪除
-    if (!window.confirm(`確定要刪除圖片「${image.filename}」嗎？\n此操作無法復原。`)) {
-      return;
-    }
-
-    const result = await deleteImage(image.filename);
-    
-    if (result.success) {
-      // 如果正在全屏模式下刪除，關閉全屏
-      if (fullscreenImage && fullscreenImage.filename === image.filename) {
-        setFullscreenImage(null);
+    checkPermission('images', 'delete', async () => {
+      // 確認刪除
+      if (!window.confirm(`確定要刪除圖片「${image.filename}」嗎？\n此操作無法復原。`)) {
+        return;
       }
+
+      const result = await deleteImage(image.filename);
       
-      // 顯示成功訊息（可選）
-      console.log('✓ 圖片已刪除:', image.filename);
-    } else {
-      // 顯示錯誤訊息
-      alert(`刪除失敗: ${result.error}`);
-      console.error('✗ 刪除圖片失敗:', result.error);
-    }
+      if (result.success) {
+        // 如果正在全屏模式下刪除，關閉全屏
+        if (fullscreenImage && fullscreenImage.filename === image.filename) {
+          setFullscreenImage(null);
+        }
+        
+        // 顯示成功訊息（可選）
+        console.log('✓ 圖片已刪除:', image.filename);
+      } else {
+        // 顯示錯誤訊息
+        alert(`刪除失敗: ${result.error}`);
+        console.error('✗ 刪除圖片失敗:', result.error);
+      }
+    });
   };
 
   // Lazy loading image component with Intersection Observer
@@ -1183,6 +1192,13 @@ const ImageViewer = () => {
             </div>
           </div>
         )}
+
+        {/* 權限不足提示對話框 */}
+        <PermissionDialog
+          open={permissionDialog.open}
+          message={permissionDialog.message}
+          onClose={closePermissionDialog}
+        />
       </div>
     </div>
   );

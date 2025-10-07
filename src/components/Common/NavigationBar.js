@@ -273,8 +273,8 @@ const NavigationBar = ({
             padding: 0
           }
         }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{ horizontal: 'center', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'center', vertical: 'bottom' }}
         sx={{
           '& .MuiList-root': {
             py: 0,
@@ -303,15 +303,17 @@ const NavigationBar = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 2
+            gap: { xs: 1.5, sm: 2 }
           }}
         >
           {/* User Info */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
             <Box
               sx={{
                 width: 36,
                 height: 36,
+                minWidth: 36,
+                minHeight: 36,
                 borderRadius: '50%',
                 background: 'linear-gradient(135deg, #eab308 0%, #f59e0b 100%)',
                 display: 'flex',
@@ -359,21 +361,26 @@ const NavigationBar = ({
             onClick={handleLogout}
             size="small"
             sx={{
-              width: 36,
-              height: 36,
+              width: '36px !important',
+              height: '36px !important',
+              minWidth: '36px !important',
+              minHeight: '36px !important',
+              maxWidth: '36px !important',
+              maxHeight: '36px !important',
+              padding: '0 !important',
               borderRadius: '8px',
-              bgcolor: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              bgcolor: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
               flexShrink: 0,
               transition: 'all 0.2s ease',
               '&:hover': {
-                bgcolor: 'rgba(239, 68, 68, 0.2)',
-                border: '1px solid rgba(239, 68, 68, 0.5)',
+                bgcolor: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
                 transform: 'scale(1.05)'
               }
             }}
           >
-            <LogOut className="w-4 h-4 text-red-400" />
+            <LogOut className="w-4 h-4 text-gray-300" />
           </IconButton>
         </Box>
       </Menu>
