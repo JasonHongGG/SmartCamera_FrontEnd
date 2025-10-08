@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Workflow, Activity, Users } from 'lucide-react';
 import DetectionGroup from '../Common/DetectionGroup';
 import { usePipelineDetection } from '../../hooks/detectionHooks';
@@ -6,7 +6,19 @@ import { useAppConfig } from '../../context/AppConfigContext';
 
 const PipelineDetection = () => {
   const { config } = useAppConfig();
-  const { state, toggleDetection } = usePipelineDetection(config.detectionHost);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { state, toggleDetection } = usePipelineDetection(
+    config.detectionHost,
+    isExpanded
+  );
+
+  const handleExpand = () => {
+    setIsExpanded(true);
+  };
+
+  const handleCollapse = () => {
+    setIsExpanded(false);
+  };
 
   return (
     <DetectionGroup
@@ -17,6 +29,8 @@ const PipelineDetection = () => {
       status={state.status}
       streaming={state.streaming}
       streamUrl={`${config.detectionHost}/pipeline/stream`}
+      onExpand={handleExpand}
+      onCollapse={handleCollapse}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {/* Person Count */}

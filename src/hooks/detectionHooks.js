@@ -6,9 +6,10 @@ import DetectionApiService from '../services/detectionService';
 /**
  * 運動檢測 Hook
  */
-export const useMotionDetection = (detectionHost) => {
+export const useMotionDetection = (detectionHost, isExpanded = false) => {
   const apiService = useRef(new DetectionApiService(detectionHost)).current;
   const { execute: executeAsync } = useAsyncOperation();
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const [state, setState] = useState({
     enabled: false,
@@ -23,36 +24,49 @@ export const useMotionDetection = (detectionHost) => {
     alarmThreshold: 20
   });
 
-  // API 輪詢
+  // API 輪詢 - 只在展開時輪詢
   const { data: motionData } = usePolling(
     () => apiService.getMotionInfo(),
     1000,
-    state.enabled
+    isExpanded  // 只在展開時輪詢
   );
 
   // 更新狀態當收到新數據時
   React.useEffect(() => {
     if (motionData) {
+      const data = motionData;
       setState(prev => {
-        const hasChange = prev.lastDetection !== motionData.lastDetection;
-        if (!hasChange) return prev;
+        const hasEnabledChange = prev.enabled !== (data.enabled ?? prev.enabled);
+        const hasLastDetectionChange = prev.lastDetection !== (data.lastDetection || prev.lastDetection);
+        
+        if (!hasEnabledChange && !hasLastDetectionChange) return prev;
+        
+        const newEnabled = data.enabled ?? prev.enabled;
         
         return {
           ...prev,
-          lastDetection: motionData.lastDetection || prev.lastDetection,
-          status: prev.enabled ? 'Active - Monitoring' : 'Inactive'
+          enabled: newEnabled,
+          lastDetection: data.lastDetection || prev.lastDetection,
+          status: newEnabled ? 'Active - Monitoring' : 'Disabled'
         };
       });
     }
   }, [motionData]);
+
+  // 當展開狀態變化時，更新 streaming 狀態
+  React.useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      streaming: isExpanded
+    }));
+  }, [isExpanded]);
 
   const toggleDetection = useCallback(async () => {
     const newEnabled = !state.enabled;
     setState(prev => ({
       ...prev,
       enabled: newEnabled,
-      status: newEnabled ? 'Initializing...' : 'Inactive',
-      streaming: newEnabled
+      status: newEnabled ? 'Initializing...' : 'Inactive'
     }));
 
     try {
@@ -62,8 +76,7 @@ export const useMotionDetection = (detectionHost) => {
         setState(prev => ({
           ...prev,
           enabled: !newEnabled,
-          status: !newEnabled ? 'Active - Monitoring' : 'Inactive',
-          streaming: !newEnabled
+          status: !newEnabled ? 'Active - Monitoring' : 'Inactive'
         }));
       }
     } catch (error) {
@@ -126,9 +139,30 @@ export const useMotionDetection = (detectionHost) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executeAsync]);
 
-  // 更新 API 服務的主機地址
+  // 更新 API 服務的主機地址，並重新同步狀態
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
+    
+    // 初始化或 host 變更時，同步當前狀態
+    const syncInitialState = async () => {
+      try {
+        const result = await apiService.getMotionInfo();
+        if (result.success && result.data) {
+          const data = result.data;
+          setState(prev => ({
+            ...prev,
+            enabled: data.enabled ?? prev.enabled,
+            lastDetection: data.lastDetection || prev.lastDetection,
+            status: data.enabled ? 'Active - Monitoring' : 'Disabled'
+          }));
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('Failed to sync initial motion detection state:', error);
+      }
+    };
+    
+    syncInitialState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detectionHost]);
 
@@ -144,9 +178,10 @@ export const useMotionDetection = (detectionHost) => {
 /**
  * 臉部檢測 Hook
  */
-export const useFaceDetection = (detectionHost) => {
+export const useFaceDetection = (detectionHost, isExpanded = false) => {
   const apiService = useRef(new DetectionApiService(detectionHost)).current;
   const { execute: executeAsync } = useAsyncOperation();
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const [state, setState] = useState({
     enabled: false,
@@ -157,34 +192,47 @@ export const useFaceDetection = (detectionHost) => {
     lastDetection: null
   });
 
-  // API 輪詢
+  // API 輪詢 - 只在展開時輪詢
   const { data: faceData } = usePolling(
     () => apiService.getFaceInfo(),
     1000,
-    state.enabled
+    isExpanded  // 只在展開時輪詢
   );
 
   // 更新狀態當收到新數據時
   React.useEffect(() => {
     if (faceData) {
+      const data = faceData;
       setState(prev => {
-        const hasFaceCountChange = prev.faceCount !== (faceData.faceCount || 0);
-        const hasFaceNamesChange = prev.faceNames !== (faceData.faceNames || prev.faceNames);
+        const hasEnabledChange = prev.enabled !== (data.enabled ?? prev.enabled);
+        const hasFaceCountChange = prev.faceCount !== (data.faceCount || 0);
+        const hasFaceNamesChange = prev.faceNames !== (data.faceNames || prev.faceNames);
         
-        if (!hasFaceCountChange && !hasFaceNamesChange) return prev;
+        if (!hasEnabledChange && !hasFaceCountChange && !hasFaceNamesChange) return prev;
+        
+        const newEnabled = data.enabled ?? prev.enabled;
         
         return {
           ...prev,
-          faceCount: faceData.faceCount || 0,
-          faceNames: faceData.faceNames || prev.faceNames,
-          lastDetection: faceData.faceCount > 0 ? faceData.lastDetection : prev.lastDetection,
-          status: prev.enabled ? 
-            (faceData.faceCount > 0 ? `Active - ${faceData.faceCount} Face(s) Detected` : 'Active - Scanning') : 
-            'Inactive'
+          enabled: newEnabled,
+          faceCount: data.faceCount || 0,
+          faceNames: data.faceNames || prev.faceNames,
+          lastDetection: data.faceCount > 0 ? data.lastDetection : prev.lastDetection,
+          status: newEnabled ? 
+            (data.faceCount > 0 ? `Active - ${data.faceCount} Face(s) Detected` : 'Active - Scanning') : 
+            'Disabled'
         };
       });
     }
   }, [faceData]);
+
+  // 當展開狀態變化時，更新 streaming 狀態
+  React.useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      streaming: isExpanded
+    }));
+  }, [isExpanded]);
 
   const toggleDetection = useCallback(async () => {
     const newEnabled = !state.enabled;
@@ -192,7 +240,6 @@ export const useFaceDetection = (detectionHost) => {
       ...prev,
       enabled: newEnabled,
       status: newEnabled ? 'Initializing...' : 'Inactive',
-      streaming: newEnabled,
       faceCount: newEnabled ? prev.faceCount : 0
     }));
 
@@ -203,8 +250,7 @@ export const useFaceDetection = (detectionHost) => {
         setState(prev => ({
           ...prev,
           enabled: !newEnabled,
-          status: !newEnabled ? 'Active - Scanning' : 'Inactive',
-          streaming: !newEnabled
+          status: !newEnabled ? 'Active - Scanning' : 'Inactive'
         }));
       }
     } catch (error) {
@@ -213,9 +259,34 @@ export const useFaceDetection = (detectionHost) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.enabled, executeAsync]);
 
-  // 更新 API 服務的主機地址
+  // 更新 API 服務的主機地址，並重新同步狀態
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
+    
+    // 初始化或 host 變更時，同步當前狀態
+    const syncInitialState = async () => {
+      try {
+        const result = await apiService.getFaceInfo();
+        if (result.success && result.data) {
+          const data = result.data;
+          setState(prev => ({
+            ...prev,
+            enabled: data.enabled ?? prev.enabled,
+            faceCount: data.faceCount || 0,
+            faceNames: data.faceNames || prev.faceNames,
+            lastDetection: data.faceCount > 0 ? data.lastDetection : prev.lastDetection,
+            status: data.enabled ? 
+              (data.faceCount > 0 ? `Active - ${data.faceCount} Face(s) Detected` : 'Active - Scanning') : 
+              'Disabled'
+          }));
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('Failed to sync initial face detection state:', error);
+      }
+    };
+    
+    syncInitialState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detectionHost]);
 
@@ -228,9 +299,10 @@ export const useFaceDetection = (detectionHost) => {
 /**
  * 跨線檢測 Hook
  */
-export const useCrosslineDetection = (detectionHost) => {
+export const useCrosslineDetection = (detectionHost, isExpanded = false) => {
   const apiService = useRef(new DetectionApiService(detectionHost)).current;
   const { execute: executeAsync } = useAsyncOperation();
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const [state, setState] = useState({
     enabled: false,
@@ -250,39 +322,51 @@ export const useCrosslineDetection = (detectionHost) => {
   const [displayedImageSize, setDisplayedImageSize] = useState({ width: 640, height: 480 });
   const [canvasSize, setCanvasSize] = useState({ width: 640, height: 480 });
 
-  // API 輪詢
+  // API 輪詢 - 只在展開時輪詢
   const { data: crosslineData } = usePolling(
     () => apiService.getCrosslineInfo(),
     1000,
-    state.enabled
+    isExpanded  // 只在展開時輪詢
   );
 
   // 更新狀態當收到新數據時
   React.useEffect(() => {
     if (crosslineData) {
+      const data = crosslineData;
       setState(prev => {
-        const hasCrossingEventChange = prev.crossingEvent !== (crosslineData.crossingEvent || prev.crossingEvent);
-        const hasLastDetectionChange = prev.lastDetection !== (crosslineData.lastDetection || prev.lastDetection);
+        const hasEnabledChange = prev.enabled !== (data.enabled ?? prev.enabled);
+        const hasCrossingEventChange = prev.crossingEvent !== (data.crossingEvent || prev.crossingEvent);
+        const hasLastDetectionChange = prev.lastDetection !== (data.lastDetection || prev.lastDetection);
         
-        if (!hasCrossingEventChange && !hasLastDetectionChange) return prev;
+        if (!hasEnabledChange && !hasCrossingEventChange && !hasLastDetectionChange) return prev;
+        
+        const newEnabled = data.enabled ?? prev.enabled;
         
         return {
           ...prev,
-          crossingEvent: crosslineData.crossingEvent || prev.crossingEvent,
-          lastDetection: crosslineData.lastDetection || prev.lastDetection,
-          status: prev.enabled ? 'Active - Monitoring' : 'Inactive'
+          enabled: newEnabled,
+          crossingEvent: data.crossingEvent || prev.crossingEvent,
+          lastDetection: data.lastDetection || prev.lastDetection,
+          status: newEnabled ? 'Active - Monitoring' : 'Disabled'
         };
       });
     }
   }, [crosslineData]);
+
+  // 當展開狀態變化時，更新 streaming 狀態
+  React.useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      streaming: isExpanded
+    }));
+  }, [isExpanded]);
 
   const toggleDetection = useCallback(async () => {
     const newEnabled = !state.enabled;
     setState(prev => ({
       ...prev,
       enabled: newEnabled,
-      status: newEnabled ? 'Initializing...' : 'Inactive',
-      streaming: newEnabled,
+      status: newEnabled ? 'Initializing...' : 'Disabled',
       isDrawing: newEnabled ? prev.isDrawing : false,
       currentLine: newEnabled ? prev.currentLine : null
     }));
@@ -294,8 +378,7 @@ export const useCrosslineDetection = (detectionHost) => {
         setState(prev => ({
           ...prev,
           enabled: !newEnabled,
-          status: !newEnabled ? 'Active - Monitoring' : 'Inactive',
-          streaming: !newEnabled
+          status: !newEnabled ? 'Active - Monitoring' : 'Disabled'
         }));
       }
     } catch (error) {
@@ -372,9 +455,31 @@ export const useCrosslineDetection = (detectionHost) => {
     });
   }, [syncLinesToServer]);
 
-  // 更新 API 服務的主機地址
+  // 更新 API 服務的主機地址，並重新同步狀態
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
+    
+    // 初始化或 host 變更時，同步當前狀態
+    const syncInitialState = async () => {
+      try {
+        const result = await apiService.getCrosslineInfo();
+        if (result.success && result.data) {
+          const data = result.data;
+          setState(prev => ({
+            ...prev,
+            enabled: data.enabled ?? prev.enabled,
+            crossingEvent: data.crossingEvent || prev.crossingEvent,
+            lastDetection: data.lastDetection || prev.lastDetection,
+            status: data.enabled ? 'Active - Monitoring' : 'Disabled'
+          }));
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('Failed to sync initial crossline detection state:', error);
+      }
+    };
+    
+    syncInitialState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detectionHost]);
 
@@ -401,9 +506,10 @@ export const useCrosslineDetection = (detectionHost) => {
 /**
  * Pipeline 檢測 Hook
  */
-export const usePipelineDetection = (detectionHost) => {
+export const usePipelineDetection = (detectionHost, isExpanded = false) => {
   const apiService = useRef(new DetectionApiService(detectionHost)).current;
   const { execute: executeAsync } = useAsyncOperation();
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const [state, setState] = useState({
     enabled: false,
@@ -414,42 +520,54 @@ export const usePipelineDetection = (detectionHost) => {
     lastDetection: null
   });
 
-  // API 輪詢
+  // API 輪詢 - 只在展開時輪詢
   const { data: pipelineData } = usePolling(
     () => apiService.getPipelineInfo(),
     1000,
-    state.enabled
+    isExpanded  // 只在展開時輪詢
   );
 
   // 更新狀態當收到新數據時
   React.useEffect(() => {
     if (pipelineData) {
+      const data = pipelineData;
       setState(prev => {
-        const hasPersonCountChange = prev.personCount !== (pipelineData.personCount || 0);
-        const hasPersonNamesChange = prev.personNames !== (pipelineData.personNames || prev.personNames);
+        const hasEnabledChange = prev.enabled !== (data.enabled ?? prev.enabled);
+        const hasPersonCountChange = prev.personCount !== (data.personCount || 0);
+        const hasPersonNamesChange = prev.personNames !== (data.personNames || prev.personNames);
         
-        if (!hasPersonCountChange && !hasPersonNamesChange) return prev;
+        if (!hasEnabledChange && !hasPersonCountChange && !hasPersonNamesChange) return prev;
+        
+        const newEnabled = data.enabled ?? prev.enabled;
         
         return {
           ...prev,
-          personCount: pipelineData.personCount || 0,
-          personNames: pipelineData.personNames || prev.personNames,
-          lastDetection: pipelineData.personCount > 0 ? pipelineData.lastDetection : prev.lastDetection,
-          status: prev.enabled ? 
-            (pipelineData.personCount > 0 ? `Active - ${pipelineData.personCount} Person(s) Detected` : 'Active - Scanning') : 
-            'Inactive'
+          enabled: newEnabled,
+          personCount: data.personCount || 0,
+          personNames: data.personNames || prev.personNames,
+          lastDetection: data.personCount > 0 ? data.lastDetection : prev.lastDetection,
+          status: newEnabled ? 
+            (data.personCount > 0 ? `Active - ${data.personCount} Person(s) Detected` : 'Active - Scanning') : 
+            'Disabled'
         };
       });
     }
   }, [pipelineData]);
+
+  // 當展開狀態變化時，更新 streaming 狀態
+  React.useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      streaming: isExpanded
+    }));
+  }, [isExpanded]);
 
   const toggleDetection = useCallback(async () => {
     const newEnabled = !state.enabled;
     setState(prev => ({
       ...prev,
       enabled: newEnabled,
-      status: newEnabled ? 'Initializing...' : 'Inactive',
-      streaming: newEnabled,
+      status: newEnabled ? 'Initializing...' : 'Disabled',
       personCount: newEnabled ? prev.personCount : 0
     }));
 
@@ -460,8 +578,7 @@ export const usePipelineDetection = (detectionHost) => {
         setState(prev => ({
           ...prev,
           enabled: !newEnabled,
-          status: !newEnabled ? 'Active - Scanning' : 'Inactive',
-          streaming: !newEnabled
+          status: !newEnabled ? 'Active - Scanning' : 'Disabled'
         }));
       }
     } catch (error) {
@@ -470,9 +587,34 @@ export const usePipelineDetection = (detectionHost) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.enabled, executeAsync]);
 
-  // 更新 API 服務的主機地址
+  // 更新 API 服務的主機地址，並重新同步狀態
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
+    
+    // 初始化或 host 變更時，同步當前狀態
+    const syncInitialState = async () => {
+      try {
+        const result = await apiService.getPipelineInfo();
+        if (result.success && result.data) {
+          const data = result.data;
+          setState(prev => ({
+            ...prev,
+            enabled: data.enabled ?? prev.enabled,
+            personCount: data.personCount || 0,
+            personNames: data.personNames || prev.personNames,
+            lastDetection: data.personCount > 0 ? data.lastDetection : prev.lastDetection,
+            status: data.enabled ? 
+              (data.personCount > 0 ? `Active - ${data.personCount} Person(s) Detected` : 'Active - Scanning') : 
+              'Disabled'
+          }));
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('Failed to sync initial pipeline detection state:', error);
+      }
+    };
+    
+    syncInitialState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detectionHost]);
 

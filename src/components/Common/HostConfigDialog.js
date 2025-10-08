@@ -36,6 +36,7 @@ const HostConfigDialog = ({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
+      disableScrollLock={true}
       PaperProps={{
         sx: {
           background: 'linear-gradient(135deg, #334155 0%, #253144ff 100%)',

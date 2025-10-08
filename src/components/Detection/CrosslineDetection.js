@@ -6,6 +6,8 @@ import { useAppConfig } from '../../context/AppConfigContext';
 
 const CrosslineDetection = () => {
   const { config } = useAppConfig();
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   const {
     state,
     setState,
@@ -23,12 +25,24 @@ const CrosslineDetection = () => {
     toggleDetection,
     syncLinesToServer,
     addVerticalLine,
-    clearLines
-  } = useCrosslineDetection(config.detectionHost);
+    clearLines,
+    startStreaming,
+    stopStreaming
+  } = useCrosslineDetection(config.detectionHost, isExpanded);
 
   const [isLineEditingExpanded, setIsLineEditingExpanded] = useState(false);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
+
+  // 處理展開事件
+  const handleExpand = useCallback(() => {
+    setIsExpanded(true);
+  }, []);
+
+  // 處理收合事件
+  const handleCollapse = useCallback(() => {
+    setIsExpanded(false);
+  }, []);
 
   // 圖片載入處理
   const handleImageLoad = useCallback((e) => {
@@ -343,6 +357,8 @@ const CrosslineDetection = () => {
       status={state.status}
       streaming={state.streaming}
       streamUrl={`${config.detectionHost}/crossline/stream`}
+      onExpand={handleExpand}
+      onCollapse={handleCollapse}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Active Lines */}

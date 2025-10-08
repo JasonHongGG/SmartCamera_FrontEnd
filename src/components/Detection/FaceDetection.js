@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Users, Activity } from 'lucide-react';
 import DetectionGroup from '../Common/DetectionGroup';
 import { useFaceDetection } from '../../hooks/detectionHooks';
@@ -6,7 +6,19 @@ import { useAppConfig } from '../../context/AppConfigContext';
 
 const FaceDetection = () => {
   const { config } = useAppConfig();
-  const { state, toggleDetection } = useFaceDetection(config.detectionHost);
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const { state, toggleDetection } = useFaceDetection(config.detectionHost, isExpanded);
+
+  // 處理展開事件
+  const handleExpand = useCallback(() => {
+    setIsExpanded(true);
+  }, []);
+
+  // 處理收合事件
+  const handleCollapse = useCallback(() => {
+    setIsExpanded(false);
+  }, []);
 
   return (
     <DetectionGroup
@@ -17,6 +29,8 @@ const FaceDetection = () => {
       status={state.status}
       streaming={state.streaming}
       streamUrl={`${config.detectionHost}/face/stream`}
+      onExpand={handleExpand}
+      onCollapse={handleCollapse}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {/* Faces Detected */}

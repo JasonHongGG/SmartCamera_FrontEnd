@@ -9,14 +9,15 @@ import { useAppConfig } from '../../context/AppConfigContext';
 
 const MotionDetection = () => {
   const { config } = useAppConfig();
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   const { 
     state, 
     customSensitivity, 
     toggleDetection, 
     setSensitivity,
-    // eslint-disable-next-line no-unused-vars
     setCustomSensitivity 
-  } = useMotionDetection(config.detectionHost);
+  } = useMotionDetection(config.detectionHost, isExpanded);
 
   // 本地輸入狀態管理（使用 ref 避免重新渲染）
   const localMotionThreshold = useRef(customSensitivity.motionThreshold);
@@ -84,6 +85,16 @@ const MotionDetection = () => {
     }
   }, [setSensitivity, state.sensitivity]);
 
+  // 處理展開事件
+  const handleExpand = useCallback(() => {
+    setIsExpanded(true);
+  }, []);
+
+  // 處理收合事件
+  const handleCollapse = useCallback(() => {
+    setIsExpanded(false);
+  }, []);
+
   return (
     <DetectionGroup
       title="Motion Detection"
@@ -93,6 +104,8 @@ const MotionDetection = () => {
       status={state.status}
       streaming={state.streaming}
       streamUrl={`${config.detectionHost}/motion/stream`}
+      onExpand={handleExpand}
+      onCollapse={handleCollapse}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
         {/* Last Detection */}
