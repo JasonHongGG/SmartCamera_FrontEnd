@@ -11,6 +11,7 @@ import {
   ImageProcessingControls, 
   OrientationControls 
 } from './AdvancedControls';
+import { useAuth } from '../../context/AuthContext';
 
 const CameraInterface = ({ 
   baseHost = "http://140.116.6.62:3000", 
@@ -47,6 +48,8 @@ const CameraInterface = ({
     captureStill,
     clearStillImage
   } = useCameraStream(streamHost);
+
+  const { hasPermission } = useAuth();
 
   // 設定變更處理
   const handleSettingChange = useCallback(async (key, value) => {
@@ -122,10 +125,13 @@ const CameraInterface = ({
             />
 
             {/* Image Settings */}
-            <ImageSettings 
-              cameraSettings={cameraSettings}
-              onSettingChange={handleSettingChange}
-            />
+            {hasPermission('camera', 'settings') && (
+              <ImageSettings 
+                cameraSettings={cameraSettings}
+                onSettingChange={handleSettingChange}
+              />
+            )}
+            
 
             {/* LED Controls */}
             <LEDControls 
@@ -153,25 +159,27 @@ const CameraInterface = ({
             </div>
 
             {/* Advanced Settings Toggle */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-700 p-3 sm:p-2 rounded-xl sm:rounded-2xl border border-slate-600/50 shadow-xl backdrop-blur-sm">
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full flex items-center justify-between p-2 sm:p-6 bg-slate-700/50 hover:bg-slate-700/70 rounded-xl transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-amber-400" />
-                  <span className="text-white font-medium text-base">Advanced Settings</span>
-                </div>
-                <div className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>
-                  <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </button>
-            </div>
+            {hasPermission('camera', 'settings') && (
+              <div className="bg-gradient-to-br from-slate-800 to-slate-700 p-3 sm:p-2 rounded-xl sm:rounded-2xl border border-slate-600/50 shadow-xl backdrop-blur-sm">
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="w-full flex items-center justify-between p-2 sm:p-6 bg-slate-700/50 hover:bg-slate-700/70 rounded-xl transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-amber-400" />
+                    <span className="text-white font-medium text-base">Advanced Settings</span>
+                  </div>
+                  <div className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>
+                    <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+              </div>
+            )}
 
             {/* Advanced Controls */}
-            {showAdvanced && (
+            {showAdvanced && hasPermission('camera', 'settings') && (
               <div className="space-y-3 sm:space-y-4 md:space-y-6">
                 <WhiteBalanceControls 
                   cameraSettings={cameraSettings}

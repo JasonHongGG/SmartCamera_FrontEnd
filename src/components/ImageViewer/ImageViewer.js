@@ -22,11 +22,16 @@ import { useImageViewer } from '../../hooks/imageHooks';
 import { useAppConfig } from '../../context/AppConfigContext';
 import { usePermission } from '../../hooks/usePermission';
 import PermissionDialog from '../Common/PermissionDialog';
+import ConfirmDialog from '../Common/ConfirmDialog';
 
 const ImageViewer = () => {
   const { config } = useAppConfig();
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [fullscreenImageLoading, setFullscreenImageLoading] = useState(false);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
+    open: false,
+    image: null
+  });
   
   const {
     images,
@@ -108,26 +113,46 @@ const ImageViewer = () => {
 
   const handleDelete = async (image) => {
     checkPermission('images', 'delete', async () => {
-      // 確認刪除
-      if (!window.confirm(`確定要刪除圖片「${image.filename}」嗎？\n此操作無法復原。`)) {
-        return;
-      }
+      // 顯示確認對話框
+      setDeleteConfirmDialog({
+        open: true,
+        image: image
+      });
+    });
+  };
 
-      const result = await deleteImage(image.filename);
-      
-      if (result.success) {
-        // 如果正在全屏模式下刪除，關閉全屏
-        if (fullscreenImage && fullscreenImage.filename === image.filename) {
-          setFullscreenImage(null);
-        }
-        
-        // 顯示成功訊息（可選）
-        console.log('✓ 圖片已刪除:', image.filename);
-      } else {
-        // 顯示錯誤訊息
-        alert(`刪除失敗: ${result.error}`);
-        console.error('✗ 刪除圖片失敗:', result.error);
+  const confirmDelete = async () => {
+    const image = deleteConfirmDialog.image;
+    
+    // 關閉確認對話框
+    setDeleteConfirmDialog({
+      open: false,
+      image: null
+    });
+
+    if (!image) return;
+
+    const result = await deleteImage(image.filename);
+    
+    if (result.success) {
+      // 如果正在全屏模式下刪除，關閉全屏
+      if (fullscreenImage && fullscreenImage.filename === image.filename) {
+        setFullscreenImage(null);
       }
+      
+      // 顯示成功訊息（可選）
+      console.log('✓ 圖片已刪除:', image.filename);
+    } else {
+      // 顯示錯誤訊息
+      alert(`刪除失敗: ${result.error}`);
+      console.error('✗ 刪除圖片失敗:', result.error);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmDialog({
+      open: false,
+      image: null
     });
   };
 
@@ -937,9 +962,9 @@ const ImageViewer = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="mt-6 sm:mt-8 flex flex-col items-center justify-center gap-3 sm:gap-4">
                 {/* Pagination Info */}
-                <div className="text-slate-400 text-sm">
+                <div className="text-slate-400 text-sm text-center">
                   顯示第 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredImages.length)} 項，共 {filteredImages.length} 項
                 </div>
 
@@ -1198,6 +1223,17 @@ const ImageViewer = () => {
           open={permissionDialog.open}
           message={permissionDialog.message}
           onClose={closePermissionDialog}
+        />
+
+        {/* 刪除確認對話框 */}
+        <ConfirmDialog
+          open={deleteConfirmDialog.open}
+          title="確認刪除"
+          message={`確定要刪除圖片「${deleteConfirmDialog.image?.filename || ''}」嗎？\n此操作無法復原。`}
+          confirmText="刪除"
+          cancelText="取消"
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
         />
       </div>
     </div>

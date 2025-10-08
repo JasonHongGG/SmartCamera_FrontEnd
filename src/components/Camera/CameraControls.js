@@ -4,8 +4,11 @@ import ControlGroup from './ControlGroup';
 import Toggle from './Toggle';
 import Slider from './Slider';
 import CustomSelect from './CustomSelect';
+import { useAuth } from '../../context/AuthContext';
 
 const BasicControls = ({ cameraSettings, onSettingChange }) => {
+  const { hasPermission } = useAuth();
+  
   return (
     <ControlGroup title="Camera Controls" icon={Camera}>
       <Toggle
@@ -20,29 +23,31 @@ const BasicControls = ({ cameraSettings, onSettingChange }) => {
         checked={cameraSettings.light_bulb}
         onChange={(value) => onSettingChange('light_bulb', value)}
       />
-      <CustomSelect
-        id="framesize"
-        label="Resolution"
-        value={cameraSettings.framesize}
-        options={[
-          { value: '15', label: 'UXGA(1600x1200)' },
-          { value: '14', label: 'SXGA(1280x1024)' },
-          { value: '13', label: 'HD(1280x720)' },
-          { value: '12', label: 'XGA(1024x768)' },
-          { value: '11', label: 'SVGA(800x600)' },
-          { value: '10', label: 'VGA(640x480)' },
-          { value: '9', label: 'HVGA(480x320)' },
-          { value: '8', label: 'CIF(400x296)' },
-          { value: '6', label: 'QVGA(320x240)' },
-          { value: '5', label: '240x240' },
-          { value: '4', label: 'HQVGA(240x176)' },
-          { value: '3', label: 'QCIF(176x144)' },
-          { value: '2', label: '128x128' },
-          { value: '1', label: 'QQVGA(160x120)' },
-          { value: '0', label: '96x96' }
-        ]}
-        onChange={(value) => onSettingChange('framesize', value)}
-      />
+      {hasPermission('camera', 'settings') && (
+        <CustomSelect
+          id="framesize"
+          label="Resolution"
+          value={cameraSettings.framesize}
+          options={[
+            { value: '15', label: 'UXGA(1600x1200)' },
+            { value: '14', label: 'SXGA(1280x1024)' },
+            { value: '13', label: 'HD(1280x720)' },
+            { value: '12', label: 'XGA(1024x768)' },
+            { value: '11', label: 'SVGA(800x600)' },
+            { value: '10', label: 'VGA(640x480)' },
+            { value: '9', label: 'HVGA(480x320)' },
+            { value: '8', label: 'CIF(400x296)' },
+            { value: '6', label: 'QVGA(320x240)' },
+            { value: '5', label: '240x240' },
+            { value: '4', label: 'HQVGA(240x176)' },
+            { value: '3', label: 'QCIF(176x144)' },
+            { value: '2', label: '128x128' },
+            { value: '1', label: 'QQVGA(160x120)' },
+            { value: '0', label: '96x96' }
+          ]}
+          onChange={(value) => onSettingChange('framesize', value)}
+        />
+      )}
       <Slider
         id="quality"
         label="Quality"

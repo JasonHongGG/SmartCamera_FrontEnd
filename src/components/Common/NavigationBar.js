@@ -76,6 +76,7 @@ const NavigationBar = ({
           <div className="p-1.5 sm:p-2 rounded-lg">
             <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400" />
           </div>
+          {/* Desktop: Camera Control System */}
           <Typography 
             variant="h6" 
             component="div" 
@@ -88,6 +89,7 @@ const NavigationBar = ({
           >
             Camera Control System
           </Typography>
+          {/* Mobile Medium: Camera System */}
           <Typography 
             variant="subtitle1" 
             component="div" 
@@ -95,10 +97,29 @@ const NavigationBar = ({
             sx={{ 
               fontWeight: 900,
               fontSize: '0.875rem',
-              display: { xs: 'block', sm: 'none' }
+              display: { xs: 'none', '@media (min-width: 375px)': { display: 'block' } },
+              '@media (min-width: 640px)': {
+                display: 'none'
+              }
             }}
           >
             Camera System
+          </Typography>
+          {/* Mobile Small: CS */}
+          <Typography 
+            variant="subtitle1" 
+            component="div" 
+            className="text-white font-black tracking-tight"
+            sx={{ 
+              fontWeight: 900,
+              fontSize: '0.875rem',
+              display: 'block',
+              '@media (min-width: 375px)': {
+                display: 'none'
+              }
+            }}
+          >
+            Camera
           </Typography>
         </div>
 
@@ -107,6 +128,61 @@ const NavigationBar = ({
 
         {/* Mobile: Compact Layout */}
         <div className="flex items-center gap-0.5 sm:hidden">
+          {/* Navigation Items - Mobile */}
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPage === item.id;
+            
+            return (
+              <IconButton
+                key={item.id}
+                onClick={() => onPageChange(item.id)}
+                size="small"
+                sx={{
+                  bgcolor: isActive ? '#eab308' : 'transparent',
+                  color: isActive ? '#000000' : '#d1d5db',
+                  border: `1px solid ${isActive ? '#eab308' : '#4b5563'}`,
+                  borderRadius: '6px !important',
+                  width: '32px !important',
+                  height: '32px !important',
+                  minWidth: '32px !important',
+                  minHeight: '32px !important',
+                  maxWidth: '32px !important',
+                  maxHeight: '32px !important',
+                  padding: '0 !important',
+                  '&:hover': {
+                    bgcolor: isActive ? '#e9be3cff' : '#374151',
+                  },
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                <Icon className="w-3.5 h-3.5" />
+              </IconButton>
+            );
+          })}
+
+          {/* Settings Button - Mobile */}
+          <IconButton
+            onClick={onOpenHostDialog}
+            size="small"
+            sx={{
+              border: '1px solid rgba(255, 255, 254, 0.3)',
+              borderRadius: '50% !important',
+              width: '32px !important',
+              height: '32px !important',
+              minWidth: '32px !important',
+              minHeight: '32px !important',
+              maxWidth: '32px !important',
+              maxHeight: '32px !important',
+              padding: '0 !important',
+              '&:hover': {
+                bgcolor: 'rgba(189, 189, 189, 0.2)',
+              }
+            }}
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </IconButton>
+
           {/* User Menu Button - Mobile */}
           <IconButton
             onClick={handleUserMenuOpen}
@@ -129,59 +205,6 @@ const NavigationBar = ({
           >
             <User className="w-3.5 h-3.5 text-yellow-400" />
           </IconButton>
-
-          <IconButton
-            onClick={onOpenHostDialog}
-            size="small"
-            sx={{
-              border: '1px solid rgba(255, 255, 254, 0.3)',
-              borderRadius: '50% !important', // 強制保持圓形
-              width: '32px !important',
-              height: '32px !important',
-              minWidth: '32px !important',
-              minHeight: '32px !important',
-              maxWidth: '32px !important',
-              maxHeight: '32px !important',
-              padding: '0 !important',
-              '&:hover': {
-                bgcolor: 'rgba(189, 189, 189, 0.2)',
-              }
-            }}
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </IconButton>
-          
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            
-            return (
-              <IconButton
-                key={item.id}
-                onClick={() => onPageChange(item.id)}
-                size="small"
-                sx={{
-                  bgcolor: isActive ? '#eab308' : 'transparent',
-                  color: isActive ? '#000000' : '#d1d5db',
-                  border: `1px solid ${isActive ? '#eab308' : '#4b5563'}`,
-                  borderRadius: '6px !important', // 稍微小一點的圓角
-                  width: '32px !important',
-                  height: '32px !important',
-                  minWidth: '32px !important',
-                  minHeight: '32px !important',
-                  maxWidth: '32px !important',
-                  maxHeight: '32px !important',
-                  padding: '0 !important',
-                  '&:hover': {
-                    bgcolor: isActive ? '#e9be3cff' : '#374151',
-                  },
-                  transition: 'all 0.2s ease-in-out'
-                }}
-              >
-                <Icon className="w-3.5 h-3.5" />
-              </IconButton>
-            );
-          })}
         </div>
 
         {/* Desktop: Full Layout */}
