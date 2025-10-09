@@ -17,20 +17,53 @@ export const AuthProvider = ({ children }) => {
 
   // 檢查本地存儲的登入狀態
   useEffect(() => {
-    const checkAuthStatus = () => {
+    // On every page load, try to sync the stored user's info (permissions etc.) with the authoritative /user.json
+    // This allows permission changes to take effect without forcing re-login.
+    const checkAuthStatus = async () => {
       const storedUser = localStorage.getItem('currentUser');
       const authToken = localStorage.getItem('authToken');
-      
+
       if (storedUser && authToken) {
         try {
-          const user = JSON.parse(storedUser);
-          setCurrentUser(user);
+          const parsed = JSON.parse(storedUser);
+          const username = parsed && parsed.username;
+
+          if (username) {
+            try {
+              const resp = await fetch('/user.json', { cache: 'no-store' });
+              if (resp.ok) {
+                const data = await resp.json();
+                const userFromFile = data.users && data.users.find(u => u.username === username);
+                if (userFromFile) {
+                  // Build user info without password
+                  const userInfo = {
+                    username: userFromFile.username,
+                    role: userFromFile.role,
+                    permissions: userFromFile.permissions
+                  };
+                  localStorage.setItem('currentUser', JSON.stringify(userInfo));
+                  setCurrentUser(userInfo);
+                  setIsAuthenticated(true);
+                  setLoading(false);
+                  return;
+                }
+                // if not found in file, fall back to parsed stored user
+              }
+            } catch (err) {
+              // network error - fall back to local stored user
+              console.warn('Failed to fetch user.json for auth sync, falling back to local user:', err);
+            }
+          }
+
+          // fallback: use stored user (parsed)
+          setCurrentUser(parsed);
           setIsAuthenticated(true);
         } catch (error) {
           console.error('Failed to parse stored user:', error);
           logout();
         }
       }
+
       setLoading(false);
     };
 
