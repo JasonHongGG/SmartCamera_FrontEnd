@@ -11,7 +11,8 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Box
+  Box,
+  Tooltip
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
 
@@ -134,109 +135,294 @@ const NavigationBar = ({
             const isActive = currentPage === item.id;
             
             return (
-              <IconButton
+              <Tooltip 
                 key={item.id}
-                onClick={() => onPageChange(item.id)}
-                size="small"
-                sx={{
-                  bgcolor: isActive ? '#eab308' : 'transparent',
-                  color: isActive ? '#000000' : '#d1d5db',
-                  border: `1px solid ${isActive ? '#eab308' : '#4b5563'}`,
-                  borderRadius: '6px !important',
-                  width: '32px !important',
-                  height: '32px !important',
-                  minWidth: '32px !important',
-                  minHeight: '32px !important',
-                  maxWidth: '32px !important',
-                  maxHeight: '32px !important',
-                  padding: '0 !important',
-                  '&:hover': {
-                    bgcolor: isActive ? '#e9be3cff' : '#374151',
+                title={item.label}
+                placement="bottom"
+                arrow
+                enterDelay={300}
+                enterNextDelay={300}
+                slotProps={{
+                  tooltip: {
+                    sx: {
+                      bgcolor: '#1e293b',
+                      color: '#f9fafb',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      px: 1.5,
+                      py: 0.75,
+                      borderRadius: '6px',
+                      border: '1px solid rgba(234, 179, 8, 0.3)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                    }
                   },
-                  transition: 'all 0.2s ease-in-out'
+                  arrow: {
+                    sx: {
+                      color: '#1e293b',
+                      '&::before': {
+                        border: '1px solid rgba(234, 179, 8, 0.3)',
+                      }
+                    }
+                  }
                 }}
               >
-                <Icon className="w-3.5 h-3.5" />
-              </IconButton>
+                <IconButton
+                  onClick={() => onPageChange(item.id)}
+                  size="small"
+                  sx={{
+                    bgcolor: isActive ? '#eab308' : 'transparent',
+                    color: isActive ? '#000000' : '#d1d5db',
+                    border: `1px solid ${isActive ? '#eab308' : '#4b5563'}`,
+                    borderRadius: '6px !important',
+                    width: '36px !important',
+                    height: '36px !important',
+                    minWidth: '36px !important',
+                    minHeight: '36px !important',
+                    maxWidth: '36px !important',
+                    maxHeight: '36px !important',
+                    padding: '0 !important',
+                    '&:hover': {
+                      bgcolor: isActive ? '#e9be3cff' : '#374151',
+                      transform: 'scale(1.08)',
+                      boxShadow: isActive 
+                        ? '0 4px 12px rgba(234, 179, 8, 0.4)' 
+                        : '0 2px 8px rgba(0, 0, 0, 0.3)',
+                    },
+                    '&:active': {
+                      transform: 'scale(0.95)',
+                    },
+                    transition: 'all 0.2s ease-in-out',
+                    ...(isActive && {
+                      boxShadow: '0 2px 8px rgba(234, 179, 8, 0.35)',
+                    })
+                  }}
+                >
+                  <Icon className="w-4 h-4" />
+                </IconButton>
+              </Tooltip>
             );
           })}
 
           {/* Settings Button - Mobile */}
-          <IconButton
-            onClick={onOpenHostDialog}
-            size="small"
-            sx={{
-              border: '1px solid rgba(255, 255, 254, 0.3)',
-              borderRadius: '50% !important',
-              width: '32px !important',
-              height: '32px !important',
-              minWidth: '32px !important',
-              minHeight: '32px !important',
-              maxWidth: '32px !important',
-              maxHeight: '32px !important',
-              padding: '0 !important',
-              '&:hover': {
-                bgcolor: 'rgba(189, 189, 189, 0.2)',
+          <Tooltip 
+            title="Host Configuration"
+            placement="bottom"
+            arrow
+            enterDelay={300}
+            slotProps={{
+              tooltip: {
+                sx: {
+                  bgcolor: '#1e293b',
+                  color: '#f9fafb',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: '6px',
+                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                }
+              },
+              arrow: {
+                sx: {
+                  color: '#1e293b',
+                  '&::before': {
+                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                  }
+                }
               }
             }}
           >
-            <Settings className="w-3.5 h-3.5" />
-          </IconButton>
+            <IconButton
+              onClick={onOpenHostDialog}
+              size="small"
+              sx={{
+                border: '1px solid rgba(255, 255, 254, 0.3)',
+                borderRadius: '50% !important',
+                width: '36px !important',
+                height: '36px !important',
+                minWidth: '36px !important',
+                minHeight: '36px !important',
+                maxWidth: '36px !important',
+                maxHeight: '36px !important',
+                padding: '0 !important',
+                '&:hover': {
+                  bgcolor: 'rgba(189, 189, 189, 0.2)',
+                  transform: 'scale(1.08)',
+                  boxShadow: '0 2px 8px rgba(255, 255, 255, 0.2)',
+                },
+                '&:active': {
+                  transform: 'scale(0.95)',
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              <Settings className="w-4 h-4" />
+            </IconButton>
+          </Tooltip>
 
           {/* User Menu Button - Mobile */}
-          <IconButton
-            onClick={handleUserMenuOpen}
-            size="small"
-            sx={{
-              border: '1px solid rgba(234, 179, 8, 0.5)',
-              borderRadius: '50% !important',
-              width: '32px !important',
-              height: '32px !important',
-              minWidth: '32px !important',
-              minHeight: '32px !important',
-              maxWidth: '32px !important',
-              maxHeight: '32px !important',
-              padding: '0 !important',
-              bgcolor: 'rgba(234, 179, 8, 0.1)',
-              '&:hover': {
-                bgcolor: 'rgba(234, 179, 8, 0.2)',
+          <Tooltip 
+            title={currentUser?.username || 'User Menu'}
+            placement="bottom"
+            arrow
+            enterDelay={300}
+            slotProps={{
+              tooltip: {
+                sx: {
+                  bgcolor: '#1e293b',
+                  color: '#f9fafb',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: '6px',
+                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                }
+              },
+              arrow: {
+                sx: {
+                  color: '#1e293b',
+                  '&::before': {
+                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                  }
+                }
               }
             }}
           >
-            <User className="w-3.5 h-3.5 text-yellow-400" />
-          </IconButton>
+            <IconButton
+              onClick={handleUserMenuOpen}
+              size="small"
+              sx={{
+                border: '1px solid rgba(234, 179, 8, 0.5)',
+                borderRadius: '50% !important',
+                width: '36px !important',
+                height: '36px !important',
+                minWidth: '36px !important',
+                minHeight: '36px !important',
+                maxWidth: '36px !important',
+                maxHeight: '36px !important',
+                padding: '0 !important',
+                bgcolor: 'rgba(234, 179, 8, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(234, 179, 8, 0.2)',
+                  transform: 'scale(1.08)',
+                  boxShadow: '0 4px 12px rgba(234, 179, 8, 0.4)',
+                },
+                '&:active': {
+                  transform: 'scale(0.95)',
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              <User className="w-4 h-4 text-yellow-400" />
+            </IconButton>
+          </Tooltip>
         </div>
 
         {/* Desktop: Full Layout */}
         <div className="hidden sm:flex items-center gap-2 md:gap-3">
           {/* User Menu Button - Desktop */}
-          <IconButton
-            onClick={handleUserMenuOpen}
-            size="medium"
-            sx={{
-              border: '1px solid rgba(234, 179, 8, 0.5)',
-              bgcolor: 'rgba(234, 179, 8, 0.1)',
-              '&:hover': {
-                bgcolor: 'rgba(234, 179, 8, 0.2)',
+          <Tooltip 
+            title={currentUser?.username || 'User Menu'}
+            placement="bottom"
+            arrow
+            enterDelay={300}
+            slotProps={{
+              tooltip: {
+                sx: {
+                  bgcolor: '#1e293b',
+                  color: '#f9fafb',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: '6px',
+                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                }
+              },
+              arrow: {
+                sx: {
+                  color: '#1e293b',
+                  '&::before': {
+                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                  }
+                }
               }
             }}
           >
-            <User className="w-5 h-5 text-yellow-400" />
-          </IconButton>
+            <IconButton
+              onClick={handleUserMenuOpen}
+              size="medium"
+              sx={{
+                border: '1px solid rgba(234, 179, 8, 0.5)',
+                bgcolor: 'rgba(234, 179, 8, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(234, 179, 8, 0.2)',
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 4px 12px rgba(234, 179, 8, 0.4)',
+                },
+                '&:active': {
+                  transform: 'scale(0.95)',
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              <User className="w-5 h-5 text-yellow-400" />
+            </IconButton>
+          </Tooltip>
 
           {/* Host Configuration */}
-          <IconButton
-            onClick={onOpenHostDialog}
-            size="medium"
-            sx={{
-              border: '1px solid rgba(255, 255, 254, 0.3)',
-              '&:hover': {
-                bgcolor: 'rgba(189, 189, 189, 0.2)',
+          <Tooltip 
+            title="Host Configuration"
+            placement="bottom"
+            arrow
+            enterDelay={300}
+            slotProps={{
+              tooltip: {
+                sx: {
+                  bgcolor: '#1e293b',
+                  color: '#f9fafb',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: '6px',
+                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                }
+              },
+              arrow: {
+                sx: {
+                  color: '#1e293b',
+                  '&::before': {
+                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                  }
+                }
               }
             }}
           >
-            <Settings className="w-5 h-5" />
-          </IconButton>
+            <IconButton
+              onClick={onOpenHostDialog}
+              size="medium"
+              sx={{
+                border: '1px solid rgba(255, 255, 254, 0.3)',
+                '&:hover': {
+                  bgcolor: 'rgba(189, 189, 189, 0.2)',
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 2px 8px rgba(255, 255, 255, 0.2)',
+                },
+                '&:active': {
+                  transform: 'scale(0.95)',
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              <Settings className="w-5 h-5" />
+            </IconButton>
+          </Tooltip>
 
           {/* Navigation Buttons */}
           {navigationItems.map((item) => {
@@ -264,8 +450,18 @@ const NavigationBar = ({
                   '&:hover': {
                     bgcolor: isActive ? '#e9be3cff' : '#374151',
                     borderColor: isActive ? '#e9be3cff' : '#6b7280',
+                    transform: 'translateY(-2px)',
+                    boxShadow: isActive 
+                      ? '0 6px 16px rgba(234, 179, 8, 0.4)' 
+                      : '0 4px 12px rgba(0, 0, 0, 0.3)',
                   },
-                  transition: 'all 0.2s ease-in-out'
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  },
+                  transition: 'all 0.2s ease-in-out',
+                  ...(isActive && {
+                    boxShadow: '0 4px 12px rgba(234, 179, 8, 0.35)',
+                  })
                 }}
               >
                 <span className="font-medium">
