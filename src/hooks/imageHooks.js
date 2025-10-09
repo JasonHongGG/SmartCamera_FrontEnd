@@ -429,7 +429,7 @@ export const useImageViewer = (detectionHost) => {
     loadImages();
   }, [loadImages]);
 
-  // Delete image
+  // Delete single image
   const deleteImage = useCallback(async (filename) => {
     if (!apiServiceRef.current) return { success: false, error: 'API service not initialized' };
 
@@ -446,6 +446,31 @@ export const useImageViewer = (detectionHost) => {
       setFullSizeImages(prev => {
         const newMap = new Map(prev);
         newMap.delete(filename);
+        return newMap;
+      });
+    }
+    
+    return result;
+  }, []);
+
+  // Delete multiple images
+  const deleteImages = useCallback(async (filenames) => {
+    if (!apiServiceRef.current) return { success: false, error: 'API service not initialized' };
+
+    const result = await apiServiceRef.current.deleteImages(filenames);
+    
+    if (result.success && result.deleted) {
+      // 從所有列表和快取中移除成功刪除的圖片
+      const deletedSet = new Set(result.deleted);
+      setAllImages(prev => prev.filter(img => !deletedSet.has(img.filename)));
+      setLoadedImages(prev => {
+        const newMap = new Map(prev);
+        result.deleted.forEach(filename => newMap.delete(filename));
+        return newMap;
+      });
+      setFullSizeImages(prev => {
+        const newMap = new Map(prev);
+        result.deleted.forEach(filename => newMap.delete(filename));
         return newMap;
       });
     }
@@ -553,6 +578,7 @@ export const useImageViewer = (detectionHost) => {
     loadImageDetails,
     refreshImages,
     deleteImage,
+    deleteImages,
     toggleSortOrder,
     toggleViewMode,
     goToPage,

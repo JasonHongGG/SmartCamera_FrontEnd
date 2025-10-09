@@ -219,32 +219,65 @@ class ImageApiService {
   }
 
   /**
-   * 刪除圖片
+   * 刪除單個圖片
    * @param {string} filename - 要刪除的圖片檔名
    */
   async deleteImage(filename) {
+    // 使用批量刪除 API 來刪除單個圖片
+    return this.deleteImages([filename]);
+  }
+
+  /**
+   * 批量刪除圖片
+   * @param {string[]} filenames - 要刪除的圖片檔名陣列
+   */
+  async deleteImages(filenames) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-      const response = await fetch(`${this.baseHost}/storage/image/${filename}`, {
+      const response = await fetch(`${this.baseHost}/storage/images/delete`, {
         signal: controller.signal,
-        method: 'DELETE',
-        headers: { 'Accept': 'application/json' },
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' 
+        },
+        body: JSON.stringify({
+          confirm: true,
+          filenames: filenames
+        })
       });
 
       clearTimeout(timeoutId);
 
       if (response.ok) {
         const result = await response.json();
-        console.log(`✓ Image deleted successfully: ${filename}`);
-        return { success: true, filename, message: result.message || 'Image deleted successfully' };
+        console.log(`✓ Images deleted successfully:`, result);
+        
+        // 如果是單個圖片，返回簡化格式以保持向後兼容
+        if (filenames.length === 1) {
+          return { 
+            success: result.deleted_count > 0, 
+            filename: filenames[0],
+            message: result.deleted_count > 0 ? 'Image deleted successfully' : 'Image not found'
+          };
+        }
+        
+        // 批量刪除返回完整結果
+        return { 
+          success: true, 
+          deleted: result.deleted,
+          failed: result.failed,
+          deleted_count: result.deleted_count,
+          failed_count: result.failed_count
+        };
       } else {
-        console.warn(`⚠ Failed to delete image ${filename}: ${response.status}`);
+        console.warn(`⚠ Failed to delete images: ${response.status}`);
         return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
       }
     } catch (error) {
-      console.error(`✗ Failed to delete image ${filename}:`, error.message);
+      console.error(`✗ Failed to delete images:`, error.message);
       let errorMessage = error.message;
       if (error.name === 'AbortError') {
         errorMessage = 'Delete request timed out';
