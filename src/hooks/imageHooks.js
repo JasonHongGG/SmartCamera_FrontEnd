@@ -550,6 +550,24 @@ export const useImageViewer = (detectionHost) => {
     return Array.from(dateSet).sort().reverse(); // 最新的日期在前
   }, [allImages]);
 
+  // Check if motion version exists for an image
+  const checkMotionImageExists = useCallback(async (filename) => {
+    if (!apiServiceRef.current) return false;
+    
+    const result = await apiServiceRef.current.checkMotionImageExists(filename);
+    return result.success && result.exists;
+  }, []);
+
+  // Load motion version of an image
+  const loadMotionImage = useCallback(async (filename) => {
+    if (!apiServiceRef.current) {
+      return { success: false, error: 'API service not initialized' };
+    }
+    
+    const result = await apiServiceRef.current.getMotionImage(filename);
+    return result;
+  }, []);
+
   // Auto-refresh on mount
   useEffect(() => {
     if (apiServiceRef.current) {
@@ -592,6 +610,8 @@ export const useImageViewer = (detectionHost) => {
     getAvailableDates,
     getImageDataUrl,
     ensureImageLoaded,
+    checkMotionImageExists,
+    loadMotionImage,
     apiService: apiServiceRef.current
   };
 };

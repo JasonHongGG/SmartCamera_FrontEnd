@@ -300,6 +300,65 @@ class ImageApiService {
   }
 
   /**
+   * 檢查 Motion 版本圖片是否存在
+   */
+  async checkMotionImageExists(filename) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(`${this.baseHost}/storage/image/motion/exist/${filename}`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        return { success: true, exists: data.exists };
+      } else {
+        return { success: false, exists: false };
+      }
+    } catch (error) {
+      console.error('✗ Failed to check motion image:', error.message);
+      return { success: false, exists: false };
+    }
+  }
+
+  /**
+   * 獲取 Motion 版本圖片
+   */
+  async getMotionImage(filename) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(`${this.baseHost}/storage/image/motion/${filename}`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const imageData = await response.json();
+        if (imageData.status === 'error') {
+          return { success: false, error: imageData.message };
+        }
+        return { success: true, image: imageData };
+      } else {
+        return { success: false, error: `HTTP ${response.status}` };
+      }
+    } catch (error) {
+      console.error('✗ Failed to get motion image:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * 從檔名中提取時間戳
    * 格式: alarm_2025-09-28_21-42-51
    */
