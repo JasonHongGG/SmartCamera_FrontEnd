@@ -11,12 +11,14 @@ const BasicControls = ({ cameraSettings, onSettingChange }) => {
   
   return (
     <ControlGroup title="Camera Controls" icon={Camera}>
-      <Toggle
-        id="camera_open"
-        label="Camera Open"
-        checked={cameraSettings.camera_open}
-        onChange={(value) => onSettingChange('camera_open', value)}
-      />
+      {hasPermission('camera', 'settings') && (
+        <Toggle
+          id="camera_open"
+          label="Camera Open"
+          checked={cameraSettings.camera_open}
+          onChange={(value) => onSettingChange('camera_open', value)}
+        />
+      )}
       <Toggle
         id="light_bulb" 
         label="Light Bulb"

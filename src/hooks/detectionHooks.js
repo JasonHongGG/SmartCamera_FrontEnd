@@ -9,7 +9,6 @@ import DetectionApiService from '../services/detectionService';
 export const useMotionDetection = (detectionHost, isExpanded = false) => {
   const apiService = useRef(new DetectionApiService(detectionHost)).current;
   const { execute: executeAsync } = useAsyncOperation();
-  const [isInitialized, setIsInitialized] = useState(false);
   
   const [state, setState] = useState({
     enabled: false,
@@ -155,7 +154,6 @@ export const useMotionDetection = (detectionHost, isExpanded = false) => {
             lastDetection: data.lastDetection || prev.lastDetection,
             status: data.enabled ? 'Active - Monitoring' : 'Disabled'
           }));
-          setIsInitialized(true);
         }
       } catch (error) {
         console.error('Failed to sync initial motion detection state:', error);
@@ -181,7 +179,6 @@ export const useMotionDetection = (detectionHost, isExpanded = false) => {
 export const useFaceDetection = (detectionHost, isExpanded = false) => {
   const apiService = useRef(new DetectionApiService(detectionHost)).current;
   const { execute: executeAsync } = useAsyncOperation();
-  const [isInitialized, setIsInitialized] = useState(false);
   
   const [state, setState] = useState({
     enabled: false,
@@ -279,7 +276,6 @@ export const useFaceDetection = (detectionHost, isExpanded = false) => {
               (data.faceCount > 0 ? `Active - ${data.faceCount} Face(s) Detected` : 'Active - Scanning') : 
               'Disabled'
           }));
-          setIsInitialized(true);
         }
       } catch (error) {
         console.error('Failed to sync initial face detection state:', error);
@@ -302,7 +298,6 @@ export const useFaceDetection = (detectionHost, isExpanded = false) => {
 export const useCrosslineDetection = (detectionHost, isExpanded = false) => {
   const apiService = useRef(new DetectionApiService(detectionHost)).current;
   const { execute: executeAsync } = useAsyncOperation();
-  const [isInitialized, setIsInitialized] = useState(false);
   
   const [state, setState] = useState({
     enabled: false,
@@ -472,7 +467,6 @@ export const useCrosslineDetection = (detectionHost, isExpanded = false) => {
             lastDetection: data.lastDetection || prev.lastDetection,
             status: data.enabled ? 'Active - Monitoring' : 'Disabled'
           }));
-          setIsInitialized(true);
         }
       } catch (error) {
         console.error('Failed to sync initial crossline detection state:', error);
@@ -509,7 +503,6 @@ export const useCrosslineDetection = (detectionHost, isExpanded = false) => {
 export const usePipelineDetection = (detectionHost, isExpanded = false) => {
   const apiService = useRef(new DetectionApiService(detectionHost)).current;
   const { execute: executeAsync } = useAsyncOperation();
-  const [isInitialized, setIsInitialized] = useState(false);
   
   const [state, setState] = useState({
     enabled: false,
@@ -607,7 +600,6 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
               (data.personCount > 0 ? `Active - ${data.personCount} Person(s) Detected` : 'Active - Scanning') : 
               'Disabled'
           }));
-          setIsInitialized(true);
         }
       } catch (error) {
         console.error('Failed to sync initial pipeline detection state:', error);

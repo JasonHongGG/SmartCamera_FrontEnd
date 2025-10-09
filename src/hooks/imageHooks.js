@@ -81,7 +81,7 @@ export const useImageViewer = (detectionHost) => {
       // 這些人名代表系統能識別的所有人，不管目前有沒有照片
       const result = await apiServiceRef.current.getAllFaceNames();
       
-      console.log('📥 Face names API result:', result);
+      console.log('Face names API result:', result);
       
       if (result.success && result.faceNames && result.faceNames.length > 0) {
         // 排序後設定為可用的人名列表
