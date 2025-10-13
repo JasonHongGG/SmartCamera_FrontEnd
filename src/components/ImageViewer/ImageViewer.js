@@ -1287,26 +1287,27 @@ const ImageViewer = () => {
         {/* Fullscreen Modal */}
         {fullscreenImage && (
           <div 
-            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4"
+            className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-2 sm:p-4"
             onClick={() => setFullscreenImage(null)}
           >
             <div 
-              className="relative max-w-full max-h-full flex items-center justify-center"
+              className="relative max-w-full max-h-full flex flex-col items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* 圖片容器 */}
               <div className="relative inline-block">
                 {/* 顯示圖片：Motion 版本或原始版本 */}
                 {showMotionVersion && motionImageData ? (
                   <img
                     src={`data:image/${motionImageData.type};base64,${motionImageData.data}`}
                     alt={`${fullscreenImage.filename} (Motion)`}
-                    className="max-w-full max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
+                    className="max-w-full max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
                   />
                 ) : (
                   <FullSizeImage
                     image={fullscreenImage}
                     alt={fullscreenImage.filename}
-                    className="max-w-full max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
+                    className="max-w-full max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
                     isLoading={fullscreenImageLoading}
                   />
                 )}
@@ -1321,10 +1322,10 @@ const ImageViewer = () => {
                   </button>
                 </Tooltip>
 
-                {/* 底部控制欄 */}
+                {/* 底部資訊欄 - 在圖片內 */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3 sm:p-4 rounded-b-lg">
-                  {/* 圖片資訊和控制按鈕 - 三欄布局 */}
-                  <div className="flex items-center justify-between gap-2 sm:gap-3">
+                  {/* 桌面版：三欄布局 */}
+                  <div className="hidden sm:grid grid-cols-3 gap-2 sm:gap-3 items-center">
                     {/* 左側：圖片資訊 */}
                     <div className="flex-1 min-w-0">
                       <div className="text-white font-medium text-sm sm:text-base">
@@ -1349,8 +1350,8 @@ const ImageViewer = () => {
                       </div>
                     </div>
 
-                    {/* 中間：控制按鈕組 - 絕對置中 */}
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 absolute left-1/2 -translate-x-1/2">
+                    {/* 中間：控制按鈕組 - 桌面版在這裡顯示 */}
+                    <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                       {/* 上一張按鈕 */}
                       {(() => {
                         const currentIndex = images.findIndex(img => img.filename === fullscreenImage.filename);
@@ -1422,7 +1423,42 @@ const ImageViewer = () => {
                     </div>
 
                     {/* 右側：圖片計數器 */}
-                    <div className="text-slate-300 text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0">
+                    <div className="text-slate-300 text-xs sm:text-sm font-medium whitespace-nowrap text-right">
+                      {(() => {
+                        const currentIndex = images.findIndex(img => img.filename === fullscreenImage.filename);
+                        return `${currentIndex + 1} / ${images.length}`;
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* 手機版：兩欄布局（左：資訊，右：計數器）*/}
+                  <div className="sm:hidden flex items-end justify-between gap-3">
+                    {/* 左側：圖片資訊 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-medium text-sm">
+                        {formatDateTime(fullscreenImage.filename)}
+                        {showMotionVersion && (
+                          <span className="ml-2 px-2 py-0.5 bg-amber-500/80 text-white text-xs rounded-full">
+                            Motion
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-slate-300 text-xs mt-1">
+                        {showMotionVersion && motionImageData 
+                          ? `${motionImageData.image_size} • ${motionImageData.file_size}`
+                          : `${fullscreenImage.image_size} • ${fullscreenImage.file_size}`
+                        }
+                        {fullscreenImageLoading && (
+                          <span className="ml-2 text-amber-400">
+                            <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />
+                            載入中...
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 右側：圖片計數器 */}
+                    <div className="text-slate-300 text-xs font-medium whitespace-nowrap">
                       {(() => {
                         const currentIndex = images.findIndex(img => img.filename === fullscreenImage.filename);
                         return `${currentIndex + 1} / ${images.length}`;
@@ -1430,6 +1466,77 @@ const ImageViewer = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* 控制按鈕 - 手機版 (在圖片外) */}
+              <div className="sm:hidden flex items-center justify-center gap-1.5 mt-3 flex-shrink-0">
+                {/* 上一張按鈕 */}
+                {(() => {
+                  const currentIndex = images.findIndex(img => img.filename === fullscreenImage.filename);
+                  const hasPrev = currentIndex > 0;
+                  
+                  return (
+                    <Tooltip title="上一張" placement="top" arrow>
+                      <span className="inline-block">
+                        <button
+                          onClick={handlePrevImage}
+                          disabled={!hasPrev}
+                          className="w-8 h-8 min-w-[2rem] min-h-[2rem] bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed rounded-lg transition-all backdrop-blur-sm border border-white/20 flex items-center justify-center group"
+                        >
+                          <ChevronLeft className={`w-4 h-4 ${
+                            hasPrev ? 'text-white group-hover:scale-110' : 'text-white/30'
+                          } transition-transform`} />
+                        </button>
+                      </span>
+                    </Tooltip>
+                  );
+                })()}
+
+                {/* Motion 版本切換按鈕 */}
+                {hasMotionVersion ? (
+                  <Tooltip 
+                    title={showMotionVersion ? "顯示原始圖片" : "顯示 Motion 版本"} 
+                    placement="top" 
+                    arrow
+                  >
+                    <span className="inline-block">
+                      <button
+                        onClick={toggleMotionVersion}
+                        className="w-9 h-8 min-w-[2rem] min-h-[2rem] bg-white/10 hover:bg-white/20 border-white/20 rounded-lg transition-all backdrop-blur-sm border flex items-center justify-center group"
+                      >
+                        <Play className={`w-3.5 h-3.5 ${
+                          showMotionVersion ? 'text-white' : 'text-amber-400'
+                        } group-hover:scale-110 transition-transform`} />
+                      </button>
+                    </span>
+                  </Tooltip>
+                ) : (
+                  <div className="w-8 h-8 min-w-[2rem] min-h-[2rem] bg-white/5 border border-white/10 rounded-lg flex items-center justify-center opacity-50 cursor-not-allowed">
+                    <Play className="w-3.5 h-3.5 text-white/30" />
+                  </div>
+                )}
+
+                {/* 下一張按鈕 */}
+                {(() => {
+                  const currentIndex = images.findIndex(img => img.filename === fullscreenImage.filename);
+                  const hasNext = currentIndex !== -1 && currentIndex < images.length - 1;
+                  
+                  return (
+                    <Tooltip title="下一張" placement="top" arrow>
+                      <span className="inline-block">
+                        <button
+                          onClick={handleNextImage}
+                          disabled={!hasNext}
+                          className="w-8 h-8 min-w-[2rem] min-h-[2rem] bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed rounded-lg transition-all backdrop-blur-sm border border-white/20 flex items-center justify-center group"
+                        >
+                          <ChevronRight className={`w-4 h-4 ${
+                            hasNext ? 'text-white group-hover:scale-110' : 'text-white/30'
+                          } transition-transform`} />
+                        </button>
+                      </span>
+                    </Tooltip>
+                  );
+                })()}
               </div>
             </div>
           </div>
