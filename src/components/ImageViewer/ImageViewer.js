@@ -30,7 +30,7 @@ const ImageViewer = () => {
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [fullscreenImageLoading, setFullscreenImageLoading] = useState(false);
   const [showMotionVersion, setShowMotionVersion] = useState(false); // 是否顯示 Motion 版本
-  const [motionImageData, setMotionImageData] = useState(null); // Motion 圖片資料
+  const [motionImageCache, setMotionImageCache] = useState(new Map()); // Motion 圖片快取 (最近 10 張)
   const [hasMotionVersion, setHasMotionVersion] = useState(false); // 是否有 Motion 版本
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
     open: false,
@@ -96,7 +96,6 @@ const ImageViewer = () => {
   const handleImageClick = (image) => {
     setFullscreenImage(image);
     setShowMotionVersion(false); // 重置為原始版本
-    setMotionImageData(null);
     setHasMotionVersion(false);
     
     // 預載完整尺寸圖片
@@ -118,22 +117,37 @@ const ImageViewer = () => {
     if (showMotionVersion) {
       // 切回原始版本
       setShowMotionVersion(false);
-      setMotionImageData(null);
     } else {
-      // 載入 Motion 版本
-      if (!motionImageData) {
+      // 檢查快取中是否已有 Motion 圖片
+      const cachedMotionImage = motionImageCache.get(fullscreenImage.filename);
+      
+      if (cachedMotionImage) {
+        // 使用快取的圖片
+        setShowMotionVersion(true);
+      } else {
+        // 載入 Motion 版本
         setFullscreenImageLoading(true);
         const result = await loadMotionImage(fullscreenImage.filename);
         setFullscreenImageLoading(false);
         
         if (result.success && result.image) {
-          setMotionImageData(result.image);
+          // 更新快取，限制最多保留 10 張
+          setMotionImageCache(prev => {
+            const newCache = new Map(prev);
+            newCache.set(fullscreenImage.filename, result.image);
+            
+            // 如果快取超過 10 張，刪除最舊的
+            if (newCache.size > 10) {
+              const firstKey = newCache.keys().next().value;
+              newCache.delete(firstKey);
+            }
+            
+            return newCache;
+          });
           setShowMotionVersion(true);
         } else {
           alert('無法載入 Motion 版本圖片');
         }
-      } else {
-        setShowMotionVersion(true);
       }
     }
   };
@@ -147,7 +161,6 @@ const ImageViewer = () => {
       const nextImage = images[currentIndex + 1];
       setFullscreenImage(nextImage);
       setShowMotionVersion(false); // 重置為原始版本
-      setMotionImageData(null);
       setHasMotionVersion(false);
       
       setFullscreenImageLoading(true);
@@ -171,7 +184,6 @@ const ImageViewer = () => {
       const prevImage = images[currentIndex - 1];
       setFullscreenImage(prevImage);
       setShowMotionVersion(false); // 重置為原始版本
-      setMotionImageData(null);
       setHasMotionVersion(false);
       
       setFullscreenImageLoading(true);
@@ -1297,20 +1309,24 @@ const ImageViewer = () => {
               {/* 圖片容器 */}
               <div className="relative inline-block">
                 {/* 顯示圖片：Motion 版本或原始版本 */}
-                {showMotionVersion && motionImageData ? (
-                  <img
-                    src={`data:image/${motionImageData.type};base64,${motionImageData.data}`}
-                    alt={`${fullscreenImage.filename} (Motion)`}
-                    className="max-w-full max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
-                  />
-                ) : (
-                  <FullSizeImage
-                    image={fullscreenImage}
-                    alt={fullscreenImage.filename}
-                    className="max-w-full max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
-                    isLoading={fullscreenImageLoading}
-                  />
-                )}
+                {(() => {
+                  const motionImageData = fullscreenImage ? motionImageCache.get(fullscreenImage.filename) : null;
+                  
+                  return showMotionVersion && motionImageData ? (
+                    <img
+                      src={`data:image/${motionImageData.type};base64,${motionImageData.data}`}
+                      alt={`${fullscreenImage.filename} (Motion)`}
+                      className="max-w-full max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
+                    />
+                  ) : (
+                    <FullSizeImage
+                      image={fullscreenImage}
+                      alt={fullscreenImage.filename}
+                      className="max-w-full max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-2rem)] object-contain rounded-lg"
+                      isLoading={fullscreenImageLoading}
+                    />
+                  );
+                })()}
                 
                 {/* 關閉按鈕 */}
                 <Tooltip title="關閉 (Esc)" placement="left" arrow>
@@ -1337,10 +1353,12 @@ const ImageViewer = () => {
                         )}
                       </div>
                       <div className="text-slate-300 text-xs sm:text-sm mt-1">
-                        {showMotionVersion && motionImageData 
-                          ? `${motionImageData.image_size} • ${motionImageData.file_size}`
-                          : `${fullscreenImage.image_size} • ${fullscreenImage.file_size}`
-                        }
+                        {(() => {
+                          const motionImageData = motionImageCache.get(fullscreenImage.filename);
+                          return showMotionVersion && motionImageData 
+                            ? `${motionImageData.image_size} • ${motionImageData.file_size}`
+                            : `${fullscreenImage.image_size} • ${fullscreenImage.file_size}`;
+                        })()}
                         {fullscreenImageLoading && (
                           <span className="ml-2 text-amber-400">
                             <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />
@@ -1444,10 +1462,12 @@ const ImageViewer = () => {
                         )}
                       </div>
                       <div className="text-slate-300 text-xs mt-1">
-                        {showMotionVersion && motionImageData 
-                          ? `${motionImageData.image_size} • ${motionImageData.file_size}`
-                          : `${fullscreenImage.image_size} • ${fullscreenImage.file_size}`
-                        }
+                        {(() => {
+                          const motionImageData = motionImageCache.get(fullscreenImage.filename);
+                          return showMotionVersion && motionImageData 
+                            ? `${motionImageData.image_size} • ${motionImageData.file_size}`
+                            : `${fullscreenImage.image_size} • ${fullscreenImage.file_size}`;
+                        })()}
                         {fullscreenImageLoading && (
                           <span className="ml-2 text-amber-400">
                             <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />
