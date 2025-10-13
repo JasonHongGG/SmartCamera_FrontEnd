@@ -21,6 +21,7 @@ export const useImageViewer = (detectionHost) => {
   const apiServiceRef = useRef(null);
   const loadedImagesRef = useRef(loadedImages); // 使用 ref 追蹤最新的 loadedImages
   const fullSizeImagesRef = useRef(fullSizeImages); // 使用 ref 追蹤最新的 fullSizeImages
+  const previousFiltersRef = useRef({ dateFilter: null, faceNameFilter: null }); // 追蹤篩選條件變化
   const MAX_CACHE_SIZE = 50; // 最多快取 50 張圖片
   const PREVIEW_WIDTH = 400; // 預覽圖片寬度
 
@@ -131,8 +132,24 @@ export const useImageViewer = (detectionHost) => {
     }
     
     setFilteredImages(filtered);
-    setCurrentPage(1); // 篩選後重置到第一頁
-  }, [allImages, dateFilter, faceNameFilter]);
+    
+    // 檢查篩選條件是否改變
+    const filtersChanged = 
+      previousFiltersRef.current.dateFilter !== dateFilter ||
+      previousFiltersRef.current.faceNameFilter !== faceNameFilter;
+    
+    if (filtersChanged) {
+      // 篩選條件改變，重置到第一頁
+      setCurrentPage(1);
+      previousFiltersRef.current = { dateFilter, faceNameFilter };
+    } else {
+      // 只是圖片數量改變（如刪除），保持當前頁或調整到有效頁
+      const newTotalPages = Math.ceil(filtered.length / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages); // 跳到最後一頁
+      }
+    }
+  }, [allImages, dateFilter, faceNameFilter, itemsPerPage, currentPage]);
 
   // Helper: 從檔名提取日期
   const extractDateFromFilename = (filename) => {
