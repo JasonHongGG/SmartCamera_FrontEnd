@@ -167,8 +167,12 @@ class DetectionApiService {
 
   /**
    * 同步線段到服務器
+   * @param {Array} lines - 線段陣列
+   * @param {number} imageWidth - 圖片寬度
+   * @param {number} imageHeight - 圖片高度
+   * @param {string} type - 檢測類型 ('crossline' 或 'pipeline')
    */
-  async syncLinesToServer(lines, imageWidth, imageHeight) {
+  async syncLinesToServer(lines, imageWidth, imageHeight, type = 'crossline') {
     try {
       const realImageLines = lines.map(line => ({
         id: line.id,
@@ -185,7 +189,8 @@ class DetectionApiService {
         body: JSON.stringify({ 
           lines: realImageLines,
           image_width: imageWidth,
-          image_height: imageHeight
+          image_height: imageHeight,
+          type: type
         })
       });
 

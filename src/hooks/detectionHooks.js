@@ -510,8 +510,18 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
     status: 'Inactive',
     personCount: 0,
     personNames: "",
-    lastDetection: null
+    lastDetection: null,
+    lines: [],
+    isDragging: false,
+    dragTarget: null,
+    hoveredPoint: null
   });
+
+  const [realImageLines, setRealImageLines] = useState([]);
+  const [liveCoordinates, setLiveCoordinates] = useState(null);
+  const [realImageSize, setRealImageSize] = useState({ width: 640, height: 480 });
+  const [displayedImageSize, setDisplayedImageSize] = useState({ width: 640, height: 480 });
+  const [canvasSize, setCanvasSize] = useState({ width: 640, height: 480 });
 
   // API 輪詢 - 只在展開時輪詢
   const { data: pipelineData } = usePolling(
@@ -580,6 +590,74 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.enabled, executeAsync]);
 
+  const syncLinesToServer = useCallback(async (lines) => {
+    try {
+      const result = await apiService.syncLinesToServer(lines, realImageSize.width, realImageSize.height, 'pipeline');
+      if (result.success) {
+        // 更新歸一化座標記錄
+        const normalizedLines = lines.map(line => ({
+          startX: line.startX / realImageSize.width,
+          startY: line.startY / realImageSize.height,
+          endX: line.endX / realImageSize.width,
+          endY: line.endY / realImageSize.height,
+        }));
+        setRealImageLines(normalizedLines);
+      }
+      return result;
+    } catch (error) {
+      console.error('Error syncing lines to server:', error);
+      return { success: false, error: error.message };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realImageSize]);
+
+  const addVerticalLine = useCallback((e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (!state.enabled) return;
+    
+    const centerX = canvasSize.width / 2;
+    const margin = 20;
+    
+    const newLine = {
+      id: Date.now(),
+      startX: centerX,
+      startY: margin,
+      endX: centerX,
+      endY: canvasSize.height - margin,
+      color: '#ef4444'
+    };
+
+    setState(prev => {
+      const updatedLines = [...prev.lines, newLine];
+      // 異步同步到 server
+      syncLinesToServer(updatedLines);
+      return {
+        ...prev,
+        lines: updatedLines
+      };
+    });
+  }, [state.enabled, canvasSize, syncLinesToServer]);
+
+  const clearLines = useCallback((e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    setState(prev => {
+      // 同步清空的線段狀態到 server
+      syncLinesToServer([]);
+      return {
+        ...prev,
+        lines: [],
+      };
+    });
+  }, [syncLinesToServer]);
+
   // 更新 API 服務的主機地址，並重新同步狀態
   React.useEffect(() => {
     apiService.updateBaseHost(detectionHost);
@@ -612,6 +690,20 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
 
   return {
     state,
-    toggleDetection
+    setState,
+    realImageLines,
+    setRealImageLines,
+    liveCoordinates,
+    setLiveCoordinates,
+    realImageSize,
+    setRealImageSize,
+    displayedImageSize,
+    setDisplayedImageSize,
+    canvasSize,
+    setCanvasSize,
+    toggleDetection,
+    syncLinesToServer,
+    addVerticalLine,
+    clearLines
   };
 };
