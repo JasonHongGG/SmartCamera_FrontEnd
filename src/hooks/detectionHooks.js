@@ -511,6 +511,7 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
     personCount: 0,
     personNames: "",
     lastDetection: null,
+    personInRoom: "",
     lines: [],
     isDragging: false,
     dragTarget: null,
@@ -538,9 +539,12 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
         const hasEnabledChange = prev.enabled !== (data.enabled ?? prev.enabled);
         const hasPersonCountChange = prev.personCount !== (data.personCount || 0);
         const hasPersonNamesChange = prev.personNames !== (data.personNames || prev.personNames);
-        
-        if (!hasEnabledChange && !hasPersonCountChange && !hasPersonNamesChange) return prev;
-        
+        const hasPersonInRoomChange = prev.personInRoom !== (data.personInRoom ?? prev.personInRoom);
+
+        console.log('Pipeline data change check:', data)
+
+        if (!hasEnabledChange && !hasPersonCountChange && !hasPersonNamesChange && !hasPersonInRoomChange) return prev;
+
         const newEnabled = data.enabled ?? prev.enabled;
         
         return {
@@ -548,6 +552,7 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
           enabled: newEnabled,
           personCount: data.personCount || 0,
           personNames: data.personNames || prev.personNames,
+          personInRoom: data.personInRoom ?? prev.personInRoom,
           lastDetection: data.personCount > 0 ? data.lastDetection : prev.lastDetection,
           status: newEnabled ? 
             (data.personCount > 0 ? `Active - ${data.personCount} Person(s) Detected` : 'Active - Scanning') : 
@@ -571,7 +576,8 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
       ...prev,
       enabled: newEnabled,
       status: newEnabled ? 'Initializing...' : 'Disabled',
-      personCount: newEnabled ? prev.personCount : 0
+      personCount: newEnabled ? prev.personCount : 0,
+      personInRoom: newEnabled ? prev.personInRoom : ''
     }));
 
     try {
@@ -674,6 +680,7 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
             personCount: data.personCount || 0,
             personNames: data.personNames || prev.personNames,
             lastDetection: data.personCount > 0 ? data.lastDetection : prev.lastDetection,
+            personInRoom: data.personInRoom || prev.personInRoom,
             status: data.enabled ? 
               (data.personCount > 0 ? `Active - ${data.personCount} Person(s) Detected` : 'Active - Scanning') : 
               'Disabled'

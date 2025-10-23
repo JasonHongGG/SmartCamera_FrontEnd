@@ -372,6 +372,9 @@ const PipelineDetection = () => {
           <p className="text-white font-mono text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold">
             {state.personCount}
           </p>
+          <p className="text-white font-mono text-sm sm:text-base md:text-lg lg:text-xl font-semibold break-words mt-2">
+            {state.personInRoom !== "" ? state.personInRoom + " in Lab" : 'No one in the room'}
+          </p>
         </div>
 
         {/* Last Detection */}
