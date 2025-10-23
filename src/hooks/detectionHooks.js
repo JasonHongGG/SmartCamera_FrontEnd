@@ -541,8 +541,6 @@ export const usePipelineDetection = (detectionHost, isExpanded = false) => {
         const hasPersonNamesChange = prev.personNames !== (data.personNames || prev.personNames);
         const hasPersonInRoomChange = prev.personInRoom !== (data.personInRoom ?? prev.personInRoom);
 
-        console.log('Pipeline data change check:', data)
-
         if (!hasEnabledChange && !hasPersonCountChange && !hasPersonNamesChange && !hasPersonInRoomChange) return prev;
 
         const newEnabled = data.enabled ?? prev.enabled;
