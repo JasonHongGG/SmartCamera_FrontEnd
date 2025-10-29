@@ -16,9 +16,7 @@ app.use("/api", createProxyMiddleware({
 app.use("/n8n", createProxyMiddleware({
   target: "http://localhost:5678",
   changeOrigin: true,
-  pathRewrite: {
-    "^/n8n": "" // 移除 /n8n 前綴，直接轉發到 n8n
-  }
+  logLevel: "debug"
 }));
 
 // 提供 React 靜態檔案
