@@ -151,7 +151,14 @@ const BatchDeleteDialog = ({
             </Box>
           )}
 
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 2, sm: 2 }, 
+              alignItems: { xs: 'stretch', sm: 'center' }
+            }}
+          >
             <Box sx={{ flex: 1 }}>
               <Typography
                 sx={{
@@ -195,6 +202,7 @@ const BatchDeleteDialog = ({
                   },
                   '& input[type="date"]': {
                     colorScheme: 'dark',
+                    fontSize: { xs: '16px', sm: 'inherit' }, // 防止 iOS 縮放
                   },
                   '& input[type="date"]::-webkit-calendar-picker-indicator': {
                     filter: 'invert(0.7) sepia(1) saturate(5) hue-rotate(10deg)', // 黃色調
@@ -213,7 +221,9 @@ const BatchDeleteDialog = ({
               sx={{
                 color: '#64748b',
                 fontSize: '1rem',
-                mt: 3
+                mt: { xs: 0, sm: 3 },
+                textAlign: 'center',
+                display: { xs: 'none', sm: 'block' }
               }}
             >
               ~
@@ -262,6 +272,7 @@ const BatchDeleteDialog = ({
                   },
                   '& input[type="date"]': {
                     colorScheme: 'dark',
+                    fontSize: { xs: '16px', sm: 'inherit' }, // 防止 iOS 縮放
                   },
                   '& input[type="date"]::-webkit-calendar-picker-indicator': {
                     filter: 'invert(0.7) sepia(1) saturate(5) hue-rotate(10deg)', // 黃色調
@@ -292,7 +303,15 @@ const BatchDeleteDialog = ({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3, pt: 0, gap: 2 }}>
+      <DialogActions 
+        sx={{ 
+          px: { xs: 2, sm: 3 }, 
+          pb: { xs: 2, sm: 3 }, 
+          pt: 0, 
+          gap: { xs: 1.5, sm: 2 },
+          flexDirection: { xs: 'column', sm: 'row' }
+        }}
+      >
         <Button
           onClick={handleCancel}
           variant="contained"
@@ -301,14 +320,15 @@ const BatchDeleteDialog = ({
             bgcolor: 'rgba(100, 116, 139, 0.15)',
             color: '#cbd5e1',
             fontWeight: 600,
-            py: 1.2,
+            py: { xs: 1, sm: 1.2 },
             border: '1px solid rgba(100, 116, 139, 0.3)',
             '&:hover': {
               bgcolor: 'rgba(100, 116, 139, 0.25)',
               border: '1px solid rgba(100, 116, 139, 0.5)'
             },
             textTransform: 'none',
-            fontSize: '0.9375rem'
+            fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+            minWidth: 0
           }}
         >
           取消
@@ -321,14 +341,15 @@ const BatchDeleteDialog = ({
             bgcolor: 'rgba(239, 68, 68, 0.15)',
             color: '#ffffff',
             fontWeight: 600,
-            py: 1.2,
+            py: { xs: 1, sm: 1.2 },
             border: '1px solid rgba(239, 68, 68, 0.3)',
             '&:hover': {
               bgcolor: 'rgba(239, 68, 68, 0.25)',
               border: '1px solid rgba(239, 68, 68, 0.5)'
             },
             textTransform: 'none',
-            fontSize: '0.9375rem'
+            fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+            minWidth: 0
           }}
         >
           確定刪除
