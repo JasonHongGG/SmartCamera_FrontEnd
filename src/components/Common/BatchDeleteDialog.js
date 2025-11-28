@@ -170,28 +170,40 @@ const BatchDeleteDialog = ({
                 fullWidth
                 InputProps={{
                   startAdornment: (
-                    <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+                    <Calendar className="w-4 h-4 text-yellow-400 mr-2" />
                   ),
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    bgcolor: 'rgba(30, 41, 59, 0.5)',
+                    bgcolor: 'rgba(55, 65, 81, 0.6)', // gray-700 半透明
                     color: '#f9fafb',
-                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    border: '1px solid rgba(107, 114, 128, 0.3)', // gray-500
                     borderRadius: '8px',
+                    transition: 'all 0.2s ease',
                     '&:hover': {
-                      border: '1px solid rgba(148, 163, 184, 0.4)',
+                      bgcolor: 'rgba(55, 65, 81, 0.8)',
+                      border: '1px solid rgba(234, 179, 8, 0.4)', // yellow-500
                     },
                     '&.Mui-focused': {
-                      border: '1px solid rgba(59, 130, 246, 0.5)',
+                      bgcolor: 'rgba(55, 65, 81, 0.9)',
+                      border: '1px solid rgba(234, 179, 8, 0.6)', // yellow-500
+                      boxShadow: '0 0 0 3px rgba(234, 179, 8, 0.1)',
                     },
                     '& fieldset': {
                       border: 'none',
                     }
                   },
+                  '& input[type="date"]': {
+                    colorScheme: 'dark',
+                  },
                   '& input[type="date"]::-webkit-calendar-picker-indicator': {
-                    filter: 'invert(0.8)',
-                    cursor: 'pointer'
+                    filter: 'invert(0.7) sepia(1) saturate(5) hue-rotate(10deg)', // 黃色調
+                    cursor: 'pointer',
+                    opacity: 0.8,
+                    transition: 'opacity 0.2s ease',
+                    '&:hover': {
+                      opacity: 1,
+                    }
                   }
                 }}
               />
@@ -225,28 +237,40 @@ const BatchDeleteDialog = ({
                 fullWidth
                 InputProps={{
                   startAdornment: (
-                    <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+                    <Calendar className="w-4 h-4 text-yellow-400 mr-2" />
                   ),
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    bgcolor: 'rgba(30, 41, 59, 0.5)',
+                    bgcolor: 'rgba(55, 65, 81, 0.6)', // gray-700 半透明
                     color: '#f9fafb',
-                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    border: '1px solid rgba(107, 114, 128, 0.3)', // gray-500
                     borderRadius: '8px',
+                    transition: 'all 0.2s ease',
                     '&:hover': {
-                      border: '1px solid rgba(148, 163, 184, 0.4)',
+                      bgcolor: 'rgba(55, 65, 81, 0.8)',
+                      border: '1px solid rgba(234, 179, 8, 0.4)', // yellow-500
                     },
                     '&.Mui-focused': {
-                      border: '1px solid rgba(59, 130, 246, 0.5)',
+                      bgcolor: 'rgba(55, 65, 81, 0.9)',
+                      border: '1px solid rgba(234, 179, 8, 0.6)', // yellow-500
+                      boxShadow: '0 0 0 3px rgba(234, 179, 8, 0.1)',
                     },
                     '& fieldset': {
                       border: 'none',
                     }
                   },
+                  '& input[type="date"]': {
+                    colorScheme: 'dark',
+                  },
                   '& input[type="date"]::-webkit-calendar-picker-indicator': {
-                    filter: 'invert(0.8)',
-                    cursor: 'pointer'
+                    filter: 'invert(0.7) sepia(1) saturate(5) hue-rotate(10deg)', // 黃色調
+                    cursor: 'pointer',
+                    opacity: 0.8,
+                    transition: 'opacity 0.2s ease',
+                    '&:hover': {
+                      opacity: 1,
+                    }
                   }
                 }}
               />
