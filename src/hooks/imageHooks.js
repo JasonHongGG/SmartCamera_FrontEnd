@@ -100,31 +100,6 @@ export const useImageViewer = (detectionHost) => {
     loadFaceNames();
   }, [detectionHost]); // 當 detectionHost 變化時重新載入（也就是 API service 初始化完成時）
 
-  // 載入鎖定的圖片列表
-  const loadLockedImages = useCallback(async () => {
-    if (!apiServiceRef.current) {
-      return;
-    }
-    
-    console.log('🔒 Loading locked images from API...');
-    const result = await apiServiceRef.current.getLockedImages();
-    
-    if (result.success && result.lockedImages) {
-      console.log('✅ Locked images loaded:', result.lockedImages.length);
-      setLockedImages(new Set(result.lockedImages));
-    } else {
-      console.log('⚠️ No locked images or request failed');
-      setLockedImages(new Set());
-    }
-  }, []);
-
-  // 當 API service 初始化後載入鎖定圖片列表
-  useEffect(() => {
-    if (apiServiceRef.current) {
-      loadLockedImages();
-    }
-  }, [detectionHost, loadLockedImages]);
-
   // 日期和人名篩選邏輯（合併）
   useEffect(() => {
     let filtered = allImages;
@@ -376,18 +351,41 @@ export const useImageViewer = (detectionHost) => {
     setLoading(true);
     setError(null);
 
-    // 只載入元數據列表，速度很快
-    const result = await apiServiceRef.current.getImageMetadata();
+    try {
+      console.log('🔄 Loading images and locked status...');
+      
+      // 同時載入圖片元數據和鎖定狀態
+      const [imagesResult, lockedResult] = await Promise.all([
+        apiServiceRef.current.getImageMetadata(),
+        apiServiceRef.current.getLockedImages()
+      ]);
 
-    if (result.success) {
-      let sortedImages = result.images;
-      if (sortOrder === 'oldest') {
-        sortedImages = [...result.images].reverse();
+      console.log('📊 Images result:', imagesResult);
+      console.log('🔒 Locked result:', lockedResult);
+
+      // 處理鎖定狀態
+      if (lockedResult.success && lockedResult.lockedImages) {
+        console.log('✅ Locked images loaded:', lockedResult.lockedImages.length, lockedResult.lockedImages);
+        setLockedImages(new Set(lockedResult.lockedImages));
+      } else {
+        console.log('⚠️ No locked images or request failed:', lockedResult.error);
+        setLockedImages(new Set());
       }
-      setAllImages(sortedImages);
-      setCurrentPage(1); // Reset to first page
-    } else {
-      setError(result.error);
+
+      // 處理圖片列表
+      if (imagesResult.success) {
+        let sortedImages = imagesResult.images;
+        if (sortOrder === 'oldest') {
+          sortedImages = [...imagesResult.images].reverse();
+        }
+        setAllImages(sortedImages);
+        setCurrentPage(1); // Reset to first page
+      } else {
+        setError(imagesResult.error);
+      }
+    } catch (error) {
+      console.error('❌ Error loading images or locked status:', error);
+      setError(error.message);
     }
 
     setLoading(false);
@@ -469,9 +467,8 @@ export const useImageViewer = (detectionHost) => {
   const refreshImages = useCallback(() => {
     setLoadedImages(new Map()); // Clear preview cache
     setFullSizeImages(new Map()); // Clear full-size cache
-    loadImages();
-    loadLockedImages(); // 重新載入鎖定狀態
-  }, [loadImages, loadLockedImages]);
+    loadImages(); // 載入圖片（已包含載入鎖定狀態）
+  }, [loadImages]);
 
   // Delete single image
   const deleteImage = useCallback(async (filename) => {
@@ -491,6 +488,12 @@ export const useImageViewer = (detectionHost) => {
         const newMap = new Map(prev);
         newMap.delete(filename);
         return newMap;
+      });
+      // 從鎖定列表中移除
+      setLockedImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(filename);
+        return newSet;
       });
     }
     
@@ -516,6 +519,12 @@ export const useImageViewer = (detectionHost) => {
         const newMap = new Map(prev);
         result.deleted.forEach(filename => newMap.delete(filename));
         return newMap;
+      });
+      // 從鎖定列表中移除已刪除的圖片
+      setLockedImages(prev => {
+        const newSet = new Set(prev);
+        result.deleted.forEach(filename => newSet.delete(filename));
+        return newSet;
       });
     }
     
@@ -668,6 +677,12 @@ export const useImageViewer = (detectionHost) => {
         result.deleted.forEach(filename => newMap.delete(filename));
         return newMap;
       });
+      // 從 lockedImages 中移除已刪除的圖片
+      setLockedImages(prev => {
+        const newSet = new Set(prev);
+        result.deleted.forEach(filename => newSet.delete(filename));
+        return newSet;
+      });
     }
     
     return result;
@@ -676,7 +691,7 @@ export const useImageViewer = (detectionHost) => {
   // Auto-refresh on mount
   useEffect(() => {
     if (apiServiceRef.current) {
-      loadImages();
+      loadImages(); // 載入圖片（已包含載入鎖定狀態）
     }
   }, [loadImages]);
 

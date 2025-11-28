@@ -317,8 +317,20 @@ class ImageApiService {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✓ Locked images loaded:', data.locked_images?.length || 0);
-        return { success: true, lockedImages: data.locked_images || [] };
+        // 後端可能直接返回陣列，或者返回包含 locked/locked_images 的物件
+        let lockedImages = [];
+        if (Array.isArray(data)) {
+          // 直接是陣列
+          lockedImages = data;
+        } else if (data.locked_images) {
+          // 物件格式：{ locked_images: [...] }
+          lockedImages = data.locked_images;
+        } else if (data.locked) {
+          // 物件格式：{ locked: [...] }
+          lockedImages = data.locked;
+        }
+        console.log('✓ Locked images loaded:', lockedImages.length);
+        return { success: true, lockedImages };
       } else {
         console.warn(`⚠ Failed to load locked images: ${response.status}`);
         return { success: false, error: `HTTP ${response.status}: ${response.statusText}`, lockedImages: [] };
