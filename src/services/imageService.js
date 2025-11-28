@@ -300,6 +300,166 @@ class ImageApiService {
   }
 
   /**
+   * 獲取鎖定的圖片列表
+   */
+  async getLockedImages() {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(`${this.baseHost}/storage/images/locked`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✓ Locked images loaded:', data.locked_images?.length || 0);
+        return { success: true, lockedImages: data.locked_images || [] };
+      } else {
+        console.warn(`⚠ Failed to load locked images: ${response.status}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}`, lockedImages: [] };
+      }
+    } catch (error) {
+      console.error('✗ Failed to load locked images:', error.message);
+      return { success: false, error: error.message, lockedImages: [] };
+    }
+  }
+
+  /**
+   * 鎖定圖片
+   * @param {string[]} filenames - 要鎖定的圖片檔名陣列
+   */
+  async lockImages(filenames) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(`${this.baseHost}/storage/images/lock`, {
+        signal: controller.signal,
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' 
+        },
+        body: JSON.stringify({ filenames })
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✓ Images locked successfully:`, result);
+        return { 
+          success: true, 
+          locked: result.locked,
+          locked_count: result.locked_count
+        };
+      } else {
+        console.warn(`⚠ Failed to lock images: ${response.status}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+    } catch (error) {
+      console.error(`✗ Failed to lock images:`, error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 解鎖圖片
+   * @param {string[]} filenames - 要解鎖的圖片檔名陣列
+   */
+  async unlockImages(filenames) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(`${this.baseHost}/storage/images/unlock`, {
+        signal: controller.signal,
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' 
+        },
+        body: JSON.stringify({ filenames })
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✓ Images unlocked successfully:`, result);
+        return { 
+          success: true, 
+          unlocked: result.unlocked,
+          unlocked_count: result.unlocked_count
+        };
+      } else {
+        console.warn(`⚠ Failed to unlock images: ${response.status}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+    } catch (error) {
+      console.error(`✗ Failed to unlock images:`, error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 批量刪除圖片（排除鎖定的圖片）
+   * @param {string} startDate - 開始日期 (YYYY-MM-DD)
+   * @param {string} endDate - 結束日期 (YYYY-MM-DD)
+   */
+  async batchDeleteByDateRange(startDate, endDate) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout * 2); // 批量刪除可能需要更長時間
+
+      const response = await fetch(`${this.baseHost}/storage/images/batch-delete`, {
+        signal: controller.signal,
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' 
+        },
+        body: JSON.stringify({
+          start_date: startDate,
+          end_date: endDate,
+          confirm: true
+        })
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✓ Batch delete completed:`, result);
+        return { 
+          success: true, 
+          deleted: result.deleted,
+          skipped_locked: result.skipped_locked,
+          deleted_count: result.deleted_count,
+          skipped_count: result.skipped_count
+        };
+      } else {
+        console.warn(`⚠ Failed to batch delete: ${response.status}`);
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+    } catch (error) {
+      console.error(`✗ Failed to batch delete:`, error.message);
+      let errorMessage = error.message;
+      if (error.name === 'AbortError') {
+        errorMessage = 'Batch delete request timed out';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = `Cannot reach server at ${this.baseHost}`;
+      }
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
    * 檢查 Motion 版本圖片是否存在
    */
   async checkMotionImageExists(filename) {

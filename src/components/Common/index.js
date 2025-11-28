@@ -6,3 +6,4 @@ export { default as StatusButton } from './StatusButton';
 export { default as NavigationBar } from './NavigationBar';
 export { default as HostConfigDialog } from './HostConfigDialog';
 export { default as ConfirmDialog } from './ConfirmDialog';
+export { default as BatchDeleteDialog } from './BatchDeleteDialog';

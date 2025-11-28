@@ -18,6 +18,7 @@ export const useImageViewer = (detectionHost) => {
   const [dateFilter, setDateFilter] = useState(null); // 日期篩選 (Date 物件或 null)
   const [faceNameFilter, setFaceNameFilter] = useState(null); // 人名篩選 (string 或 null)
   const [availableFaceNames, setAvailableFaceNames] = useState([]); // 可用的人名列表
+  const [lockedImages, setLockedImages] = useState(new Set()); // 鎖定的圖片檔名集合
   const apiServiceRef = useRef(null);
   const loadedImagesRef = useRef(loadedImages); // 使用 ref 追蹤最新的 loadedImages
   const fullSizeImagesRef = useRef(fullSizeImages); // 使用 ref 追蹤最新的 fullSizeImages
@@ -98,6 +99,31 @@ export const useImageViewer = (detectionHost) => {
 
     loadFaceNames();
   }, [detectionHost]); // 當 detectionHost 變化時重新載入（也就是 API service 初始化完成時）
+
+  // 載入鎖定的圖片列表
+  const loadLockedImages = useCallback(async () => {
+    if (!apiServiceRef.current) {
+      return;
+    }
+    
+    console.log('🔒 Loading locked images from API...');
+    const result = await apiServiceRef.current.getLockedImages();
+    
+    if (result.success && result.lockedImages) {
+      console.log('✅ Locked images loaded:', result.lockedImages.length);
+      setLockedImages(new Set(result.lockedImages));
+    } else {
+      console.log('⚠️ No locked images or request failed');
+      setLockedImages(new Set());
+    }
+  }, []);
+
+  // 當 API service 初始化後載入鎖定圖片列表
+  useEffect(() => {
+    if (apiServiceRef.current) {
+      loadLockedImages();
+    }
+  }, [detectionHost, loadLockedImages]);
 
   // 日期和人名篩選邏輯（合併）
   useEffect(() => {
@@ -444,7 +470,8 @@ export const useImageViewer = (detectionHost) => {
     setLoadedImages(new Map()); // Clear preview cache
     setFullSizeImages(new Map()); // Clear full-size cache
     loadImages();
-  }, [loadImages]);
+    loadLockedImages(); // 重新載入鎖定狀態
+  }, [loadImages, loadLockedImages]);
 
   // Delete single image
   const deleteImage = useCallback(async (filename) => {
@@ -585,6 +612,67 @@ export const useImageViewer = (detectionHost) => {
     return result;
   }, []);
 
+  // Lock images
+  const lockImages = useCallback(async (filenames) => {
+    if (!apiServiceRef.current) return { success: false, error: 'API service not initialized' };
+
+    const result = await apiServiceRef.current.lockImages(filenames);
+    
+    if (result.success && result.locked) {
+      // 更新 lockedImages state
+      setLockedImages(prev => {
+        const newSet = new Set(prev);
+        result.locked.forEach(filename => newSet.add(filename));
+        return newSet;
+      });
+    }
+    
+    return result;
+  }, []);
+
+  // Unlock images
+  const unlockImages = useCallback(async (filenames) => {
+    if (!apiServiceRef.current) return { success: false, error: 'API service not initialized' };
+
+    const result = await apiServiceRef.current.unlockImages(filenames);
+    
+    if (result.success && result.unlocked) {
+      // 更新 lockedImages state
+      setLockedImages(prev => {
+        const newSet = new Set(prev);
+        result.unlocked.forEach(filename => newSet.delete(filename));
+        return newSet;
+      });
+    }
+    
+    return result;
+  }, []);
+
+  // Batch delete by date range
+  const batchDeleteByDateRange = useCallback(async (startDate, endDate) => {
+    if (!apiServiceRef.current) return { success: false, error: 'API service not initialized' };
+
+    const result = await apiServiceRef.current.batchDeleteByDateRange(startDate, endDate);
+    
+    if (result.success && result.deleted) {
+      // 從所有列表和快取中移除成功刪除的圖片
+      const deletedSet = new Set(result.deleted);
+      setAllImages(prev => prev.filter(img => !deletedSet.has(img.filename)));
+      setLoadedImages(prev => {
+        const newMap = new Map(prev);
+        result.deleted.forEach(filename => newMap.delete(filename));
+        return newMap;
+      });
+      setFullSizeImages(prev => {
+        const newMap = new Map(prev);
+        result.deleted.forEach(filename => newMap.delete(filename));
+        return newMap;
+      });
+    }
+    
+    return result;
+  }, []);
+
   // Auto-refresh on mount
   useEffect(() => {
     if (apiServiceRef.current) {
@@ -609,11 +697,15 @@ export const useImageViewer = (detectionHost) => {
     dateFilter,
     faceNameFilter,
     availableFaceNames,
+    lockedImages,
     loadImages,
     loadImageDetails,
     refreshImages,
     deleteImage,
     deleteImages,
+    lockImages,
+    unlockImages,
+    batchDeleteByDateRange,
     toggleSortOrder,
     toggleViewMode,
     goToPage,

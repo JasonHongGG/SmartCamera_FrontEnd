@@ -16,7 +16,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Play
+  Play,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { IconButton, Tooltip, Select, MenuItem, FormControl } from '@mui/material';
 import { useImageViewer } from '../../hooks/imageHooks';
@@ -24,6 +26,7 @@ import { useAppConfig } from '../../context/AppConfigContext';
 import { usePermission } from '../../hooks/usePermission';
 import PermissionDialog from '../Common/PermissionDialog';
 import ConfirmDialog from '../Common/ConfirmDialog';
+import BatchDeleteDialog from '../Common/BatchDeleteDialog';
 
 const ImageViewer = () => {
   const { config } = useAppConfig();
@@ -36,6 +39,7 @@ const ImageViewer = () => {
     open: false,
     image: null
   });
+  const [batchDeleteDialog, setBatchDeleteDialog] = useState(false);
   
   const {
     images,
@@ -52,8 +56,12 @@ const ImageViewer = () => {
     dateFilter,
     faceNameFilter,
     availableFaceNames,
+    lockedImages,
     refreshImages,
     deleteImage,
+    lockImages,
+    unlockImages,
+    batchDeleteByDateRange,
     toggleSortOrder,
     toggleViewMode,
     goToPage,
@@ -277,6 +285,47 @@ const ImageViewer = () => {
     });
   };
 
+  // Handle lock/unlock image
+  const handleToggleLock = async (image) => {
+    const isLocked = lockedImages.has(image.filename);
+    
+    if (isLocked) {
+      // Unlock the image
+      const result = await unlockImages([image.filename]);
+      if (result.success) {
+        console.log('✓ 圖片已解鎖:', image.filename);
+      } else {
+        alert(`解鎖失敗: ${result.error}`);
+        console.error('✗ 解鎖圖片失敗:', result.error);
+      }
+    } else {
+      // Lock the image
+      const result = await lockImages([image.filename]);
+      if (result.success) {
+        console.log('✓ 圖片已鎖定:', image.filename);
+      } else {
+        alert(`鎖定失敗: ${result.error}`);
+        console.error('✗ 鎖定圖片失敗:', result.error);
+      }
+    }
+  };
+
+  // Handle batch delete
+  const handleBatchDelete = async (startDate, endDate) => {
+    setBatchDeleteDialog(false);
+    
+    const result = await batchDeleteByDateRange(startDate, endDate);
+    
+    if (result.success) {
+      const message = `批量刪除完成！\n刪除: ${result.deleted_count} 張\n跳過 (已鎖定): ${result.skipped_count} 張`;
+      alert(message);
+      console.log('✓ 批量刪除成功:', result);
+    } else {
+      alert(`批量刪除失敗: ${result.error}`);
+      console.error('✗ 批量刪除失敗:', result.error);
+    }
+  };
+
   // Lazy loading image component with Intersection Observer
   const LazyImage = ({ image, alt, className, onClick }) => {
     // 智能初始化：如果已經有快取資料，直接使用
@@ -444,89 +493,127 @@ const ImageViewer = () => {
     );
   };
 
-  const ImageCard = ({ image, isGrid = true }) => (
-    <div className={`bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl border border-slate-600/50 shadow-xl backdrop-blur-sm transition-all duration-200 hover:shadow-2xl hover:border-amber-500/30 cursor-pointer ${
-      isGrid ? 'p-2 sm:p-3' : 'p-3 sm:p-4 flex items-center gap-3 sm:gap-4'
-    }`}>
-      <div className={`relative ${isGrid ? 'aspect-video' : 'flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20'} overflow-hidden rounded-lg bg-slate-700/50`}>
-        <LazyImage
-          image={image}
-          alt={image.filename}
-          className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
-          onClick={() => handleImageClick(image)}
-        />
-        <div 
-          className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors duration-200 flex items-center justify-center opacity-0 hover:opacity-100 cursor-pointer"
-          onClick={() => handleImageClick(image)}
-        >
-          <Eye className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-        </div>
-      </div>
-      
-      <div className={`${isGrid ? 'mt-1.5 sm:mt-2' : 'flex-1 min-w-0'}`}>
-        <div className={`flex items-center gap-2 ${isGrid ? 'flex-col items-start' : 'justify-between'}`}>
-          <div className="flex items-center gap-1 sm:gap-2 text-amber-400 text-xs">
-            <Calendar className="w-3 h-3" />
-            <span className={isGrid ? 'text-xs' : 'text-xs sm:text-sm'}>{formatDateTime(image.filename)}</span>
+  const ImageCard = ({ image, isGrid = true }) => {
+    const isLocked = lockedImages.has(image.filename);
+    
+    return (
+      <div className={`bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl border border-slate-600/50 shadow-xl backdrop-blur-sm transition-all duration-200 hover:shadow-2xl hover:border-amber-500/30 cursor-pointer ${
+        isGrid ? 'p-2 sm:p-3' : 'p-3 sm:p-4 flex items-center gap-3 sm:gap-4'
+      }`}>
+        <div className={`relative ${isGrid ? 'aspect-video' : 'flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20'} overflow-hidden rounded-lg bg-slate-700/50`}>
+          <LazyImage
+            image={image}
+            alt={image.filename}
+            className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+            onClick={() => handleImageClick(image)}
+          />
+          <div 
+            className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors duration-200 flex items-center justify-center opacity-0 hover:opacity-100 cursor-pointer"
+            onClick={() => handleImageClick(image)}
+          >
+            <Eye className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
           </div>
-          {!isGrid && (
-            <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+          {/* Lock indicator */}
+          {isLocked && (
+            <div className="absolute top-1 right-1 p-1 bg-amber-500/80 rounded">
+              <Lock className="w-3 h-3 text-white" />
+            </div>
+          )}
+        </div>
+        
+        <div className={`${isGrid ? 'mt-1.5 sm:mt-2' : 'flex-1 min-w-0'}`}>
+          <div className={`flex items-center gap-2 ${isGrid ? 'flex-col items-start' : 'justify-between'}`}>
+            <div className="flex items-center gap-1 sm:gap-2 text-amber-400 text-xs">
+              <Calendar className="w-3 h-3" />
+              <span className={isGrid ? 'text-xs' : 'text-xs sm:text-sm'}>{formatDateTime(image.filename)}</span>
+            </div>
+            {!isGrid && (
+              <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleLock(image);
+                  }}
+                  className={`p-1 ${isLocked ? 'bg-amber-600/50 hover:bg-amber-500/70' : 'bg-slate-600/50 hover:bg-slate-500/70'} rounded transition-colors`}
+                  title={isLocked ? '解鎖圖片' : '鎖定圖片'}
+                >
+                  {isLocked ? (
+                    <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                  ) : (
+                    <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                  )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(image);
+                  }}
+                  className="p-1 bg-red-600/50 hover:bg-red-500/70 rounded transition-colors"
+                  title="刪除圖片"
+                >
+                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(image);
+                  }}
+                  className="p-1 bg-slate-600/50 hover:bg-slate-500/70 rounded transition-colors"
+                  title="下載圖片"
+                >
+                  <Download className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div className={`text-slate-300 text-xs ${isGrid ? 'mt-1' : 'mt-1'}`}>
+            <div>尺寸: {image.image_size}</div>
+            <div>大小: {image.file_size}</div>
+          </div>
+          
+          {isGrid && (
+            <div className="flex gap-1 mt-1.5">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleLock(image);
+                }}
+                className={`py-1.5 px-1 sm:px-2 ${isLocked ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400' : 'bg-slate-500/20 hover:bg-slate-500/30 text-slate-400'} rounded text-xs font-medium transition-colors flex items-center justify-center min-h-[28px] h-7 flex-shrink-0`}
+                title={isLocked ? '解鎖圖片' : '鎖定圖片'}
+              >
+                {isLocked ? (
+                  <Lock className="w-3 h-3" />
+                ) : (
+                  <Unlock className="w-3 h-3" />
+                )}
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(image);
                 }}
-                className="p-1 bg-red-600/50 hover:bg-red-500/70 rounded transition-colors"
-                title="刪除圖片"
+                className="flex-1 py-1.5 px-1 sm:px-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 min-h-[28px] h-7"
               >
-                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                <Trash2 className="w-3 h-3" />
+                <span className="hidden sm:inline">刪除</span>
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDownload(image);
                 }}
-                className="p-1 bg-slate-600/50 hover:bg-slate-500/70 rounded transition-colors"
-                title="下載圖片"
+                className="flex-1 py-1.5 px-1 sm:px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 min-h-[28px] h-7"
               >
-                <Download className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                <Download className="w-3 h-3" />
+                <span className="hidden sm:inline">下載</span>
               </button>
             </div>
           )}
         </div>
-        
-        <div className={`text-slate-300 text-xs ${isGrid ? 'mt-1' : 'mt-1'}`}>
-          <div>尺寸: {image.image_size}</div>
-          <div>大小: {image.file_size}</div>
-        </div>
-        
-        {isGrid && (
-          <div className="flex gap-1 mt-1.5">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(image);
-              }}
-              className="flex-1 py-1.5 px-2 sm:py-1.5 sm:px-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 min-h-[28px] h-7"
-            >
-              <Trash2 className="w-3 h-3" />
-              <span className="inline">刪除</span>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload(image);
-              }}
-              className="flex-1 py-1.5 px-2 sm:py-1.5 sm:px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 min-h-[28px] h-7"
-            >
-              <Download className="w-3 h-3" />
-              <span className="inline">下載</span>
-            </button>
-          </div>
-        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-gray-100">
@@ -545,6 +632,36 @@ const ImageViewer = () => {
             </div>
             
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <Tooltip title="批量刪除照片">
+                <IconButton
+                  onClick={() => setBatchDeleteDialog(true)}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    minWidth: '32px',
+                    minHeight: '32px',
+                    '@media (min-width: 640px)': {
+                      width: '36px',
+                      height: '36px',
+                      minWidth: '36px',
+                      minHeight: '36px',
+                    },
+                    bgcolor: 'rgba(239, 68, 68, 0.2)',
+                    color: '#f87171',
+                    borderRadius: '8px',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    '&:hover': {
+                      bgcolor: 'rgba(239, 68, 68, 0.3)',
+                    },
+                  }}
+                >
+                  <Trash2 style={{ width: '14px', height: '14px' }} />
+                </IconButton>
+              </Tooltip>
+
               <Tooltip title={viewMode === 'grid' ? '切換到列表檢視' : '切換到網格檢視'}>
                 <IconButton
                   onClick={toggleViewMode}
@@ -1578,6 +1695,14 @@ const ImageViewer = () => {
           cancelText="取消"
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
+        />
+
+        {/* 批量刪除對話框 */}
+        <BatchDeleteDialog
+          open={batchDeleteDialog}
+          onConfirm={handleBatchDelete}
+          onCancel={() => setBatchDeleteDialog(false)}
+          lockedImages={lockedImages}
         />
       </div>
     </div>
