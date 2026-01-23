@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  frontend:
+  smartcamera_frontend:
     image: node:20
     working_dir: /app
     restart: unless-stopped
@@ -15,3 +15,11 @@ services:
       - PORT=4000
       - API_PROXY_TARGET=http://host.docker.internal:5000
     command: sh -c "npm install && npm run build && node server.js"
+
+    networks:
+      - default
+      - hong_service
+
+networks:
+  hong_service:
+    external: true
