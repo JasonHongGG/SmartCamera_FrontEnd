@@ -13,4 +13,5 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4000
+      - API_PROXY_TARGET=http://host.docker.internal:5000
     command: sh -c "npm install && npm run build && node server.js"

@@ -3,20 +3,15 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const path = require("path");
 
 const app = express();
+const apiTarget = process.env.API_PROXY_TARGET || "http://host.docker.internal:5000";
 
 // API Proxy 要放在最前面
 app.use("/api", createProxyMiddleware({
-  target: "http://localhost:5000",
+  target: apiTarget,
   changeOrigin: true,
   pathRewrite: {
     "^/api": "" // 移除 /api 前綴，直接轉發到 Flask
   }
-}));
-
-app.use("/n8n", createProxyMiddleware({
-  target: "http://localhost:5678",
-  changeOrigin: true,
-  logLevel: "debug"
 }));
 
 // 提供 React 靜態檔案
